@@ -50,19 +50,70 @@ def forward_diff(diff_func_id : str,
     class FwdDiffMutator(irmutator.IRMutator):
         def mutate_function_def(self, node):
             # HW1: TODO
-            return super().mutate_function_def(node)
+            print("inside mutate_function_def")
+
+            new_args = [loma_ir.Arg(
+                arg.id, 
+                autodiff.type_to_diff_type(diff_structs, arg.t),
+                arg.i) for arg in node.args]
+            new_body = [self.mutate_stmt(stmt) for stmt in node.body]
+            new_node = loma_ir.FunctionDef(\
+                diff_func_id, 
+                new_args, 
+                new_body, 
+                node.is_simd, 
+                autodiff.type_to_diff_type(diff_structs, node.ret_type)
+            )
+            return new_node
 
         def mutate_return(self, node):
             # HW1: TODO
-            return super().mutate_return(node)
+            print("inside mutate_return")
+            
+            val, dval = self.mutate_expr(node.val)
+            if func.ret_type == loma_ir.Float():
+                return loma_ir.Return(loma_ir.Call('make__dfloat', [val, dval]))
+
+            return loma_ir.Return(val)
 
         def mutate_declare(self, node):
             # HW1: TODO
-            return super().mutate_declare(node)
+            print("inside mutate_declare")
+
+            new_val = node.val
+
+            if node.val is not None:
+                val, dval = self.mutate_expr(node.val)
+                if isinstance(val.t, (loma_ir.Int, loma_ir.Struct)):
+                    new_val = val
+                else:
+                    new_val = loma_ir.Call('make__dfloat', [val, dval])
+
+            return loma_ir.Declare(
+                node.target,
+                autodiff.type_to_diff_type(diff_structs, node.t),
+                new_val)
 
         def mutate_assign(self, node):
             # HW1: TODO
-            return super().mutate_assign(node)
+            print("inside mutate_assign")
+
+            new_target = node.target
+            if isinstance(new_target, loma_ir.ArrayAccess):
+                new_array = new_target.array
+                new_index = self.mutate_expr(new_target.index)[0]
+                new_target = loma_ir.ArrayAccess(new_array, new_index)
+
+            val, dval = self.mutate_expr(node.val)
+
+            print(val)
+            if isinstance(val.t, (loma_ir.Int, loma_ir.Struct)) or (isinstance(val, loma_ir.Call) and val.id == "float2int"):
+                return loma_ir.Assign(node.target, val)
+
+            return loma_ir.Assign(
+                new_target,
+                loma_ir.Call('make__dfloat', [val, dval])
+            )
 
         def mutate_ifelse(self, node):
             # HW3: TODO
@@ -74,42 +125,159 @@ def forward_diff(diff_func_id : str,
 
         def mutate_const_float(self, node):
             # HW1: TODO
-            return super().mutate_const_float(node)
+            print("inside mutate_const_float")
+
+            return loma_ir.ConstFloat(node.val), loma_ir.ConstFloat(0.0)
 
         def mutate_const_int(self, node):
             # HW1: TODO
-            return super().mutate_const_int(node)
+            print("inside mutate_const_int")
+            return node, loma_ir.ConstFloat(0.0)
 
         def mutate_var(self, node):
             # HW1: TODO
-            return super().mutate_var(node)
+            print("inside mutate_var")
+
+            # if node.t == loma_ir.Int():
+            #     return node, loma_ir.ConstFloat(0.0)
+
+            # val = loma_ir.StructAccess(node, 'val')
+            # dval = loma_ir .StructAccess(node, 'dval')
+            # return val, dval
+
+            if node.t == loma_ir.Float():
+                val = loma_ir.StructAccess(node, 'val')
+                dval = loma_ir .StructAccess(node, 'dval')
+                return val, dval
+
+            return node, loma_ir.ConstFloat(0.0)
 
         def mutate_array_access(self, node):
             # HW1: TODO
-            return super().mutate_array_access(node)
+            print("inside mutate_array_access")
+
+            new_array = node.array
+            new_index = self.mutate_expr(node.index)[0]
+
+            if new_array.t.t == loma_ir.Int():
+                return loma_ir.ArrayAccess(new_array, new_index), loma_ir.ConstFloat(0.0)
+            
+            val = loma_ir.StructAccess(loma_ir.ArrayAccess(new_array, new_index), 'val')
+            dval = loma_ir.StructAccess(loma_ir.ArrayAccess(new_array, new_index), 'dval')
+
+            return val, dval
 
         def mutate_struct_access(self, node):
             # HW1: TODO
-            return super().mutate_struct_access(node)
+            print("inside mutate_struct_access")
+            print(node)
+
+            if node.t == loma_ir.Int():
+                return node, loma_ir.ConstFloat(0.0)
+            
+            val = loma_ir.StructAccess(node, 'val')
+            dval = loma_ir.StructAccess(node, 'dval')
+
+            return val, dval
 
         def mutate_add(self, node):
             # HW1: TODO
-            return super().mutate_add(node)
+            print("inside mutate_add")
+
+            left_val, left_dval = self.mutate_expr(node.left)
+            right_val, right_dval = self.mutate_expr(node.right)
+
+            return loma_ir.BinaryOp(loma_ir.Add(), left_val, right_val), loma_ir.BinaryOp(loma_ir.Add(), left_dval, right_dval)
 
         def mutate_sub(self, node):
             # HW1: TODO
-            return super().mutate_sub(node)
+            print("inside mutate_sub")
+
+            left_val, left_dval = self.mutate_expr(node.left)
+            right_val, right_dval = self.mutate_expr(node.right)
+
+            return loma_ir.BinaryOp(loma_ir.Sub(), left_val, right_val), loma_ir.BinaryOp(loma_ir.Sub(), left_dval, right_dval)
 
         def mutate_mul(self, node):
             # HW1: TODO
-            return super().mutate_mul(node)
+            print("inside mutate_mul")
+
+            left_val, left_dval = self.mutate_expr(node.left)
+            right_val, right_dval = self.mutate_expr(node.right)
+
+            xdy = loma_ir.BinaryOp(loma_ir.Mul(), left_val, right_dval)     # x * dy
+            ydx = loma_ir.BinaryOp(loma_ir.Mul(), right_val, left_dval)     # y * dx
+
+            return loma_ir.BinaryOp(loma_ir.Mul(), left_val, right_val), loma_ir.BinaryOp(loma_ir.Add(), xdy, ydx)
 
         def mutate_div(self, node):
             # HW1: TODO
-            return super().mutate_div(node)
+            print("inside mutate_div")
+
+            left_val, left_dval = self.mutate_expr(node.left)
+            right_val, right_dval = self.mutate_expr(node.right)
+
+            xdy = loma_ir.BinaryOp(loma_ir.Mul(), left_val, right_dval)     # x * dy
+            ydx = loma_ir.BinaryOp(loma_ir.Mul(), right_val, left_dval)     # y * dx
+            y2 = loma_ir.BinaryOp(loma_ir.Mul(), right_val, right_val)      # y^2
+
+            ydxSUBxdy = loma_ir.BinaryOp(loma_ir.Sub(), ydx, xdy)           # y*dx - x*dy
+
+            return loma_ir.BinaryOp(loma_ir.Div(), left_val, right_val), loma_ir.BinaryOp(loma_ir.Div(), ydxSUBxdy, y2)
 
         def mutate_call(self, node):
             # HW1: TODO
-            return super().mutate_call(node)
+            print("inside mutate_call")
+
+            match node.id:
+                case "sin":
+                    assert(len(node.args) == 1)
+                    val, dval = self.mutate_expr(node.args[0])
+                    return loma_ir.Call("sin", [val]), loma_ir.BinaryOp(loma_ir.Mul(), loma_ir.Call("cos", [val]), dval)
+                case "cos":
+                    assert(len(node.args) == 1)
+                    val, dval = self.mutate_expr(node.args[0])
+                    sin_x = loma_ir.Call("sin", [val])
+                    sinx_dx = loma_ir.BinaryOp(loma_ir.Mul(), sin_x, dval)
+                    return loma_ir.Call("cos", [val]), loma_ir.BinaryOp(loma_ir.Mul(), loma_ir.ConstInt(-1), sinx_dx)
+                case "sqrt":
+                    assert(len(node.args) == 1)
+                    val, dval = self.mutate_expr(node.args[0])
+                    sqrtx = loma_ir.Call("sqrt", [val])
+                    return sqrtx, loma_ir.BinaryOp(loma_ir.Div(), dval, loma_ir.BinaryOp(loma_ir.Mul(), loma_ir.ConstInt(2), sqrtx))
+                case "pow":
+                    assert(len(node.args) == 2)
+                    base_val, base_dval = self.mutate_expr(node.args[0])
+                    exp_val, exp_dval = self.mutate_expr(node.args[1])
+                    x_to_y = loma_ir.Call("pow", [base_val, exp_val])
+                    x_to_ySUBone = loma_ir.Call("pow", [base_val, loma_ir.BinaryOp(loma_ir.Sub(), exp_val, loma_ir.ConstInt(1))])
+                    logx = loma_ir.Call("log", [base_val])
+                    temp_left = loma_ir.BinaryOp(loma_ir.Mul(), exp_val, x_to_ySUBone)
+                    temp_right = loma_ir.BinaryOp(loma_ir.Mul(), x_to_y, logx)
+                    dx_temp_left = loma_ir.BinaryOp(loma_ir.Mul(), base_dval, temp_left)
+                    dy_temp_right = loma_ir.BinaryOp(loma_ir.Mul(), exp_dval, temp_right)
+
+                    return x_to_y, loma_ir.BinaryOp(loma_ir.Add(), dx_temp_left, dy_temp_right)
+                case "exp":
+                    assert(len(node.args) == 1)
+                    val, dval = self.mutate_expr(node.args[0])
+                    exp_x = loma_ir.Call("exp", [val])
+
+                    return exp_x, loma_ir.BinaryOp(loma_ir.Mul(), exp_x, dval)
+                case "log":
+                    assert(len(node.args) == 1)
+                    val, dval = self.mutate_expr(node.args[0])
+                    return loma_ir.Call("log", [val]), loma_ir.BinaryOp(loma_ir.Div(), dval, val)
+                case "int2float":
+                    assert(len(node.args) == 1)
+                    val, dval = self.mutate_expr(node.args[0])
+                    return loma_ir.Call("int2float", [val]), loma_ir.ConstFloat(0.0)
+                case "float2int":
+                    assert(len(node.args) == 1)
+                    val, dval = self.mutate_expr(node.args[0])
+                    return loma_ir.Call("float2int", [val]), loma_ir.ConstInt(0)
+                case _ :
+                    return super().mutate_struct_access(node)
+
 
     return FwdDiffMutator().mutate_function_def(func)

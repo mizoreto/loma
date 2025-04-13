@@ -355,6 +355,8 @@ def parse(code : str) -> tuple[dict[str, loma_ir.Struct], dict[str, loma_ir.func
         Returns both the parsed loma Structs and functions.
     """
     module = ast.parse(code)
+    # print(module.__dict__)
+    # exit()
 
     structs = {}
     for d in module.body:
