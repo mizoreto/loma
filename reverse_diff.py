@@ -226,7 +226,23 @@ def reverse_diff(diff_func_id : str,
     class RevDiffMutator(irmutator.IRMutator):
         def mutate_function_def(self, node):
             # HW2: TODO
-            return super().mutate_function_def(node)
+            print("inside mutate_function_def")
+            new_args = []
+            for arg in node.args:
+                if arg.i == loma_ir.In():
+                    new_args.append(arg)
+                    new_args.append(loma_ir.Arg('_dx', arg.t, loma_ir.Out()))
+                if arg.i == loma_ir.Out():
+                    new_args.append(loma_ir.Arg(arg.id, arg.t, loma_ir.In()))
+            
+            new_node = loma_ir.FunctionDef(\
+                diff_func_id, 
+                new_args, 
+                new_body, 
+                node.is_simd, 
+                autodiff.type_to_diff_type(diff_structs, node.ret_type)
+            )
+            return new_node
 
         def mutate_return(self, node):
             # HW2: TODO
