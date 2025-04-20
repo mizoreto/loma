@@ -228,25 +228,39 @@ def reverse_diff(diff_func_id : str,
             # HW2: TODO
             print("inside mutate_function_def")
             new_args = []
+            self.var_to_diff_dict = dict()
             for arg in node.args:
                 if arg.i == loma_ir.In():
                     new_args.append(arg)
-                    new_args.append(loma_ir.Arg('_dx', arg.t, loma_ir.Out()))
-                if arg.i == loma_ir.Out():
-                    new_args.append(loma_ir.Arg(arg.id, arg.t, loma_ir.In()))
+                    new_out_id = "_d" + arg.id + "_" + random_id_generator()
+                    new_args.append(loma_ir.Arg(new_out_id, arg.t, loma_ir.Out()))
+                    self.var_to_diff_dict[arg.id] = new_out_id
+                elif arg.i == loma_ir.Out():
+                    new_in_id = "_d" + arg.id + "_" + random_id_generator()
+                    new_args.append(loma_ir.Arg(new_in_id, arg.t, loma_ir.In()))
+                    self.var_to_diff_dict[arg.id] = new_in_id
             
+            if node.ret_type is not None:
+                new_return_input_id = "_dret_" + random_id_generator() 
+                new_args.append(loma_ir.Arg(new_return_input_id, node.ret_type, loma_ir.In()))
+                self.return_input_id = new_return_input_id
+            
+            new_body = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.body)])
             new_node = loma_ir.FunctionDef(\
                 diff_func_id, 
                 new_args, 
                 new_body, 
                 node.is_simd, 
-                autodiff.type_to_diff_type(diff_structs, node.ret_type)
+                None,
+                lineno=node.lineno
             )
             return new_node
 
         def mutate_return(self, node):
             # HW2: TODO
-            return super().mutate_return(node)
+            print("inside mutate_return")
+            self.adjoint = loma_ir.Var(self.return_input_id, lineno=node.lineno, t=node.val.t)
+            return self.mutate_expr(node.val)
 
         def mutate_declare(self, node):
             # HW2: TODO
@@ -270,7 +284,8 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_const_float(self, node):
             # HW2: TODO
-            return super().mutate_const_float(node)
+            print("inside mutate_const_float")
+            return []
 
         def mutate_const_int(self, node):
             # HW2: TODO
@@ -278,7 +293,9 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_var(self, node):
             # HW2: TODO
-            return super().mutate_var(node)
+            print("inside mutate_var")
+            dvar = loma_ir.Var(self.var_to_diff_dict[node.id], lineno=node.lineno, t=node.t)
+            return [accum_deriv(dvar, self.adjoint, False)]
 
         def mutate_array_access(self, node):
             # HW2: TODO
@@ -290,19 +307,47 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_add(self, node):
             # HW2: TODO
-            return super().mutate_add(node)
+            print("inside mutate_add")
+            left_stmt_list = self.mutate_expr(node.left)
+            right_stmt_list = self.mutate_expr(node.right)
+            return left_stmt_list + right_stmt_list
 
         def mutate_sub(self, node):
             # HW2: TODO
-            return super().mutate_sub(node)
+            print("inside mutate_sub")
+            left_stmt_list = self.mutate_expr(node.left)
+            adjoint_copy = self.adjoint
+            self.adjoint = loma_ir.BinaryOp(loma_ir.Sub(), loma_ir.ConstFloat(0.0), adjoint_copy)
+            right_stmt_list = self.mutate_expr(node.right)
+            self.ajoint = adjoint_copy
+            return left_stmt_list + right_stmt_list
 
         def mutate_mul(self, node):
             # HW2: TODO
-            return super().mutate_mul(node)
+            print("inside mutate_mul")
+            adjoint_copy = self.adjoint
+
+            self.adjoint = loma_ir.BinaryOp(loma_ir.Mul(), adjoint_copy, node.right)
+            left_stmt_list = self.mutate_expr(node.left)
+            self.adjoint = loma_ir.BinaryOp(loma_ir.Mul(), adjoint_copy, node.left)
+            right_stmt_list = self.mutate_expr(node.right)
+            self.adjoint = adjoint_copy
+            return left_stmt_list + right_stmt_list
 
         def mutate_div(self, node):
             # HW2: TODO
-            return super().mutate_div(node)
+            print("inside mutate_div")
+            adjoint_copy = self.adjoint
+
+            self.adjoint = loma_ir.BinaryOp(loma_ir.Div(), adjoint_copy, node.right)
+            left_stmt_list = self.mutate_expr(node.left)
+            neg_adj = loma_ir.BinaryOp(loma_ir.Sub(), loma_ir.ConstFloat(0.0), adjoint_copy)
+            neg_adj_times_x = loma_ir.BinaryOp(loma_ir.Mul(), neg_adj, node.left)
+            y_sqred = loma_ir.BinaryOp(loma_ir.Mul(), node.right, node.right)
+            self.adjoint = loma_ir.BinaryOp(loma_ir.Div(), neg_adj_times_x, y_sqred)
+            right_stmt_list = self.mutate_expr(node.right)
+            self.adjoint = adjoint_copy
+            return left_stmt_list + right_stmt_list
 
         def mutate_call(self, node):
             # HW2: TODO
