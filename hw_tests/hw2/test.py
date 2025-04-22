@@ -91,54 +91,54 @@ class Homework2Test(unittest.TestCase):
         assert abs(_dx.value - dout / y) < epsilon and \
                abs(_dy.value + (dout * x) / (y * y)) < epsilon
 
-    # def test_square(self):
-    #     with open('loma_code/square.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/square')
-    #     x = 5.0
-    #     _dx = ctypes.c_float(0)
-    #     dout = 3.0
-    #     lib.d_square(x, ctypes.byref(_dx), dout)
-    #     assert abs(_dx.value - 2 * dout * x) < epsilon
+    def test_square(self):
+        with open('loma_code/square.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/square')
+        x = 5.0
+        _dx = ctypes.c_float(0)
+        dout = 3.0
+        lib.d_square(x, ctypes.byref(_dx), dout)
+        assert abs(_dx.value - 2 * dout * x) < epsilon
 
-    # def test_declare(self):
-    #     with open('loma_code/declare.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/declare')
-    #     x = 5.0
-    #     _dx = ctypes.c_float(0)
-    #     y = 6.0
-    #     _dy = ctypes.c_float(0)
-    #     dout = 3.0
-    #     lib.d_declare(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_declare(self):
+        with open('loma_code/declare.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/declare')
+        x = 5.0
+        _dx = ctypes.c_float(0)
+        y = 6.0
+        _dy = ctypes.c_float(0)
+        dout = 3.0
+        lib.d_declare(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     # simulate the reverse-diff program
-    #     z0_val = x + y
-    #     z1_val = z0_val + 5.0
-    #     z2_val = z1_val * z0_val
-    #     z3_val = z2_val / z1_val
-    #     z4_val = z3_val - x
+        # simulate the reverse-diff program
+        z0_val = x + y
+        z1_val = z0_val + 5.0
+        z2_val = z1_val * z0_val
+        z3_val = z2_val / z1_val
+        z4_val = z3_val - x
 
-    #     z4_dval = dout
-    #     # z4_val = z3_val - x
-    #     z3_dval = dout
-    #     x_dval = -dout
-    #     # z3_val = z2_val / z1_val
-    #     z2_dval = z3_dval / z1_val
-    #     z1_dval = -z3_dval * z2_val / (z1_val * z1_val)
-    #     # z2_val = z1_val * z0_val
-    #     z1_dval += z2_dval * z0_val
-    #     z0_dval = z2_dval * z1_val
-    #     # z1_val = z0_val + 5.0
-    #     z0_dval += z1_dval
-    #     # z0_val = x + y
-    #     x_dval += z0_dval
-    #     y_dval = z0_dval
+        z4_dval = dout
+        # z4_val = z3_val - x
+        z3_dval = dout
+        x_dval = -dout
+        # z3_val = z2_val / z1_val
+        z2_dval = z3_dval / z1_val
+        z1_dval = -z3_dval * z2_val / (z1_val * z1_val)
+        # z2_val = z1_val * z0_val
+        z1_dval += z2_dval * z0_val
+        z0_dval = z2_dval * z1_val
+        # z1_val = z0_val + 5.0
+        z0_dval += z1_dval
+        # z0_val = x + y
+        x_dval += z0_dval
+        y_dval = z0_dval
 
-    #     assert abs(_dx.value - x_dval) < epsilon and \
-    #            abs(_dy.value - y_dval) < epsilon
+        assert abs(_dx.value - x_dval) < epsilon and \
+               abs(_dy.value - y_dval) < epsilon
 
     # def test_assign1(self):
     #     with open('loma_code/assign1.py') as f:

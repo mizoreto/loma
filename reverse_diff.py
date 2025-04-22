@@ -221,6 +221,20 @@ def reverse_diff(diff_func_id : str,
 
     # HW2 happens here. Modify the following IR mutators to perform
     # reverse differentiation.
+    class ForwardPassMutator(irmutator.IRMutator):
+        def __init__(self):
+            self.var_to_diff_dict = dict()
+        
+        def mutate_return(self, node):
+            return []
+
+        def mutate_declare(self, node):
+            print("inside forward mutate_declare")
+            target = node.target
+            dtarget_name = "_d" + target + "_" + random_id_generator()
+            new_stmt = loma_ir.Declare(dtarget_name, node.t, lineno=node.lineno)
+            self.var_to_diff_dict[target] = dtarget_name
+            return [node, new_stmt]
 
     # Apply the differentiation.
     class RevDiffMutator(irmutator.IRMutator):
@@ -244,8 +258,15 @@ def reverse_diff(diff_func_id : str,
                 new_return_input_id = "_dret_" + random_id_generator() 
                 new_args.append(loma_ir.Arg(new_return_input_id, node.ret_type, loma_ir.In()))
                 self.return_input_id = new_return_input_id
-            
-            new_body = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.body)])
+
+            forward_mutator = ForwardPassMutator()
+            forward_body = irmutator.flatten([forward_mutator.mutate_stmt(stmt) for stmt in node.body])
+
+            self.var_to_diff_dict = self.var_to_diff_dict | forward_mutator.var_to_diff_dict
+            print(self.var_to_diff_dict)
+
+            reversed_body = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.body)])
+            new_body = forward_body + reversed_body
             new_node = loma_ir.FunctionDef(\
                 diff_func_id, 
                 new_args, 
@@ -264,10 +285,15 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_declare(self, node):
             # HW2: TODO
-            return super().mutate_declare(node)
+            print("inside mutate_declare")
+            self.adjoint = loma_ir.Var(self.var_to_diff_dict[node.target], lineno=node.lineno, t=node.t)
+            if node.val is None:
+                return []
+            return self.mutate_expr(node.val)
 
         def mutate_assign(self, node):
             # HW2: TODO
+            print("inside mutate_assign")
             return super().mutate_assign(node)
 
         def mutate_ifelse(self, node):
