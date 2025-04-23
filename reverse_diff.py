@@ -119,6 +119,17 @@ def reverse_diff(diff_func_id : str,
             case _:
                 assert False
 
+    def check_lhs_is_output_arg(lhs, output_args):
+        match lhs:
+            case loma_ir.Var():
+                return lhs.id in output_args
+            case loma_ir.StructAccess():
+                return check_lhs_is_output_arg(lhs.struct, output_args)
+            case loma_ir.ArrayAccess():
+                return check_lhs_is_output_arg(lhs.array, output_args)
+            case _:
+                assert False
+
     # A utility class that you can use for HW3.
     # This mutator normalizes each call expression into
     # f(x0, x1, ...)
@@ -222,9 +233,10 @@ def reverse_diff(diff_func_id : str,
     # HW2 happens here. Modify the following IR mutators to perform
     # reverse differentiation.
     class ForwardPassMutator(irmutator.IRMutator):
-        def __init__(self):
+        def __init__(self, out_args):
             self.var_to_diff_dict = dict()
             self.type_to_stackName_ptrName_stackSize = dict()
+            self.out_args = out_args
         
         def mutate_return(self, node):
             print("inside forward mutate_return")
@@ -242,6 +254,9 @@ def reverse_diff(diff_func_id : str,
             print("inside forward mutate_assign")
             target = node.target
             target_type = target.t
+
+            if check_lhs_is_output_arg(target, self.out_args):
+                return []
 
             if target_type not in self.type_to_stackName_ptrName_stackSize:
                 rand = random_id_generator()
@@ -271,6 +286,7 @@ def reverse_diff(diff_func_id : str,
             self.is_assign = False
             self.return_input_id = None
             self.assign_adj_count = 0
+            self.out_args = []
 
             for arg in node.args:
                 if arg.i == loma_ir.In():
@@ -282,6 +298,7 @@ def reverse_diff(diff_func_id : str,
                     new_in_id = "_d" + arg.id + "_" + random_id_generator()
                     new_args.append(loma_ir.Arg(new_in_id, arg.t, loma_ir.In()))
                     self.var_to_diff_dict[arg.id] = new_in_id
+                    self.out_args.append(arg.id)
             
             if node.ret_type is not None:
                 new_return_input_id = "_dret_" + random_id_generator() 
@@ -289,7 +306,7 @@ def reverse_diff(diff_func_id : str,
                 self.return_input_id = new_return_input_id
 
             # forward mode
-            forward_mutator = ForwardPassMutator()
+            forward_mutator = ForwardPassMutator(self.out_args)
             forward_body = irmutator.flatten([forward_mutator.mutate_stmt(stmt) for stmt in node.body])
 
             self.var_to_diff_dict = self.var_to_diff_dict | forward_mutator.var_to_diff_dict
@@ -342,6 +359,10 @@ def reverse_diff(diff_func_id : str,
         def mutate_assign(self, node):
             # HW2: TODO
             print("inside mutate_assign")
+
+            if check_lhs_is_output_arg(node.target, self.out_args):
+                self.adjoint = loma_ir.Var(self.var_to_diff_dict[node.target.id], lineno=node.lineno, t=node.target.t)
+                return self.mutate_expr(node.val)
 
             self.is_assign = True
             self.assign_adj_tmp_list = []
@@ -455,6 +476,65 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_call(self, node):
             # HW2: TODO
-            return super().mutate_call(node)
+            print("inside mutate_call")
+
+            match node.id:
+                case "sin":
+                    assert(len(node.args) == 1)
+                    adjoint_copy = self.adjoint
+                    self.adjoint = loma_ir.BinaryOp(loma_ir.Mul(), adjoint_copy, loma_ir.Call("cos", node.args))
+                    stmt = [self.mutate_expr(arg) for arg in node.args]
+                    self.adjoint = adjoint_copy
+                    return stmt
+
+                case "cos":
+                    assert(len(node.args) == 1)
+                    adjoint_copy = self.adjoint
+                    self.adjoint = loma_ir.BinaryOp(loma_ir.Mul(), adjoint_copy, loma_ir.BinaryOp(loma_ir.Sub(), loma_ir.ConstFloat(0.0), loma_ir.Call("sin", node.args)))
+                    stmt = [self.mutate_expr(arg) for arg in node.args]
+                    self.adjoint = adjoint_copy
+                    return stmt
+
+                case "sqrt":
+                    assert(len(node.args) == 1)
+                    adjoint_copy = self.adjoint
+                    self.adjoint = loma_ir.BinaryOp(loma_ir.Div(), adjoint_copy, loma_ir.BinaryOp(loma_ir.Mul(), loma_ir.ConstFloat(2.0), node))
+                    stmt = [self.mutate_expr(arg) for arg in node.args]
+                    self.adjoint = adjoint_copy
+                    return stmt
+
+                case "pow":
+                    assert(len(node.args) == 2)
+                    adjoint_copy = self.adjoint
+                    x = node.args[0]
+                    y = node.args[1]
+                    x_to_ySUBone = loma_ir.Call("pow", [x, loma_ir.BinaryOp(loma_ir.Sub(), y, loma_ir.ConstFloat(1.0))])
+                    self.adjoint = loma_ir.BinaryOp(loma_ir.Mul(), adjoint_copy, loma_ir.BinaryOp(loma_ir.Mul(), y, x_to_ySUBone))
+                    left_stmt = self.mutate_expr(x)
+                    log_x = loma_ir.Call("log", [x])
+                    self.adjoint = loma_ir.BinaryOp(loma_ir.Mul(), adjoint_copy, loma_ir.BinaryOp(loma_ir.Mul(), node, log_x))
+                    right_stmt = self.mutate_expr(y)
+                    self.adjoint = adjoint_copy
+                    return left_stmt + right_stmt
+                
+                case "exp":
+                    assert(len(node.args) == 1)
+                    adjoint_copy = self.adjoint
+                    self.adjoint = loma_ir.BinaryOp(loma_ir.Mul(), adjoint_copy, node)
+                    stmt = [self.mutate_expr(arg) for arg in node.args]
+                    self.adjoint = adjoint_copy
+                    return stmt
+                
+                case "log":
+                    assert(len(node.args) == 1)
+                    adjoint_copy = self.adjoint
+                    self.adjoint = loma_ir.BinaryOp(loma_ir.Div(), adjoint_copy, node.args[0])
+                    stmt = [self.mutate_expr(arg) for arg in node.args]
+                    self.adjoint = adjoint_copy
+                    return stmt
+
+                case _:
+                    assert False
+                    return super().mutate_call(node)
 
     return RevDiffMutator().mutate_function_def(func)

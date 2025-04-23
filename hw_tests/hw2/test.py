@@ -288,127 +288,127 @@ class Homework2Test(unittest.TestCase):
             abs(_dy.value - dy) < epsilon and \
             abs(_dz.value - dz) < epsilon
 
-    # def test_refs_out(self):
-    #     with open('loma_code/refs_out.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/refs_out')
-    #     x = 0.7
-    #     _dx = ctypes.c_float(0)
-    #     _dy = 0.1
-    #     lib.d_refs_out(x,
-    #                    ctypes.byref(_dx),
-    #                    _dy)
+    def test_refs_out(self):
+        with open('loma_code/refs_out.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/refs_out')
+        x = 0.7
+        _dx = ctypes.c_float(0)
+        _dy = 0.1
+        lib.d_refs_out(x,
+                       ctypes.byref(_dx),
+                       _dy)
 
-    #     assert abs(_dx.value - 0.1 * 2 * x) < epsilon
+        assert abs(_dx.value - 0.1 * 2 * x) < epsilon
 
-    # def test_call_sin(self):
-    #     with open('loma_code/call_sin.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call_sin')
-    #     x = 1.5
-    #     _dx = ctypes.c_float(0)
-    #     dout = -0.3
-    #     lib.d_call_sin(x, ctypes.byref(_dx), dout)
+    def test_call_sin(self):
+        with open('loma_code/call_sin.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call_sin')
+        x = 1.5
+        _dx = ctypes.c_float(0)
+        dout = -0.3
+        lib.d_call_sin(x, ctypes.byref(_dx), dout)
 
-    #     assert abs(_dx.value - dout * math.cos(x)) < epsilon
+        assert abs(_dx.value - dout * math.cos(x)) < epsilon
 
-    # def test_call_cos(self):
-    #     with open('loma_code/call_cos.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call_cos')
-    #     x = 1.5
-    #     _dx = ctypes.c_float(0)
-    #     dout = -0.3
-    #     lib.d_call_cos(x, ctypes.byref(_dx), dout)
+    def test_call_cos(self):
+        with open('loma_code/call_cos.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call_cos')
+        x = 1.5
+        _dx = ctypes.c_float(0)
+        dout = -0.3
+        lib.d_call_cos(x, ctypes.byref(_dx), dout)
 
-    #     assert abs(_dx.value + dout * math.sin(x)) < epsilon
+        assert abs(_dx.value + dout * math.sin(x)) < epsilon
 
-    # def test_call_sqrt(self):
-    #     with open('loma_code/call_sqrt.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call_sqrt')
-    #     x = 1.5
-    #     _dx = ctypes.c_float(0)
-    #     dout = -0.3
-    #     lib.d_call_sqrt(x, ctypes.byref(_dx), dout)
+    def test_call_sqrt(self):
+        with open('loma_code/call_sqrt.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call_sqrt')
+        x = 1.5
+        _dx = ctypes.c_float(0)
+        dout = -0.3
+        lib.d_call_sqrt(x, ctypes.byref(_dx), dout)
 
-    #     assert abs(_dx.value - (0.5 * dout / math.sqrt(x))) < epsilon
+        assert abs(_dx.value - (0.5 * dout / math.sqrt(x))) < epsilon
 
-    # def test_call_pow(self):
-    #     with open('loma_code/call_pow.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call_pow')
-    #     x = 1.5
-    #     _dx = ctypes.c_float(0)
-    #     y = 0.7
-    #     _dy = ctypes.c_float(0)
-    #     dout = -0.3
-    #     lib.d_call_pow(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_call_pow(self):
+        with open('loma_code/call_pow.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call_pow')
+        x = 1.5
+        _dx = ctypes.c_float(0)
+        y = 0.7
+        _dy = ctypes.c_float(0)
+        dout = -0.3
+        lib.d_call_pow(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     assert abs(_dx.value - dout * y * math.pow(x, y - 1)) < epsilon and \
-    #         abs(_dy.value - dout * math.pow(x, y) * math.log(x)) < epsilon
+        assert abs(_dx.value - dout * y * math.pow(x, y - 1)) < epsilon and \
+            abs(_dy.value - dout * math.pow(x, y) * math.log(x)) < epsilon
 
-    # def test_call_exp(self):
-    #     with open('loma_code/call_exp.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call_exp')
-    #     x = 1.5
-    #     _dx = ctypes.c_float(0)
-    #     dout = -0.3
-    #     lib.d_call_exp(x, ctypes.byref(_dx), dout)
+    def test_call_exp(self):
+        with open('loma_code/call_exp.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call_exp')
+        x = 1.5
+        _dx = ctypes.c_float(0)
+        dout = -0.3
+        lib.d_call_exp(x, ctypes.byref(_dx), dout)
 
-    #     assert abs(_dx.value - dout * math.exp(x)) < epsilon
+        assert abs(_dx.value - dout * math.exp(x)) < epsilon
 
-    # def test_call_log(self):
-    #     with open('loma_code/call_log.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call_log')
-    #     x = 1.5
-    #     _dx = ctypes.c_float(0)
-    #     dout = -0.3
-    #     lib.d_call_log(x, ctypes.byref(_dx), dout)
+    def test_call_log(self):
+        with open('loma_code/call_log.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call_log')
+        x = 1.5
+        _dx = ctypes.c_float(0)
+        dout = -0.3
+        lib.d_call_log(x, ctypes.byref(_dx), dout)
 
-    #     assert abs(_dx.value - dout / x) < epsilon
+        assert abs(_dx.value - dout / x) < epsilon
 
-    # def test_call(self):
-    #     with open('loma_code/call.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/call')
-    #     x = 1.5
-    #     _dx = ctypes.c_float(0)
-    #     y = 0.7
-    #     _dy = ctypes.c_float(0)
-    #     dout = -0.3
-    #     lib.d_call(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_call(self):
+        with open('loma_code/call.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/call')
+        x = 1.5
+        _dx = ctypes.c_float(0)
+        y = 0.7
+        _dy = ctypes.c_float(0)
+        dout = -0.3
+        lib.d_call(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     z0 = math.sin(x)
-    #     z1 = math.cos(z0) + 1.0
-    #     z2 = math.sqrt(z1) - y * y
-    #     z3 = math.pow(z2, z1)
-    #     z4 = math.exp(z3)
-    #     z5 = math.log(z3 + z4)
+        z0 = math.sin(x)
+        z1 = math.cos(z0) + 1.0
+        z2 = math.sqrt(z1) - y * y
+        z3 = math.pow(z2, z1)
+        z4 = math.exp(z3)
+        z5 = math.log(z3 + z4)
 
-    #     dz5 = dout
-    #     dz3 = dout / (z3 + z4)
-    #     dz4 = dout / (z3 + z4)
-    #     dz3 += dz4 * z4
-    #     dz2 = dz3 * z1 * math.pow(z2, z1 - 1)
-    #     dz1 = dz3 * math.pow(z2, z1) * math.log(z2)
-    #     dz1 += (0.5) * (dz2 / math.sqrt(z1))
-    #     dy = -dz2 * 2 * y
-    #     dz0 = -dz1 * math.sin(z0)
-    #     dx = dz0 * math.cos(x)
+        dz5 = dout
+        dz3 = dout / (z3 + z4)
+        dz4 = dout / (z3 + z4)
+        dz3 += dz4 * z4
+        dz2 = dz3 * z1 * math.pow(z2, z1 - 1)
+        dz1 = dz3 * math.pow(z2, z1) * math.log(z2)
+        dz1 += (0.5) * (dz2 / math.sqrt(z1))
+        dy = -dz2 * 2 * y
+        dz0 = -dz1 * math.sin(z0)
+        dx = dz0 * math.cos(x)
 
-    #     assert abs(_dx.value - dx) < epsilon and \
-    #         abs(_dy.value - dy) < epsilon
+        assert abs(_dx.value - dx) < epsilon and \
+            abs(_dy.value - dy) < epsilon
 
     # def test_int_input(self):
     #     with open('loma_code/int_input.py') as f:
