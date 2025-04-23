@@ -410,49 +410,49 @@ class Homework2Test(unittest.TestCase):
         assert abs(_dx.value - dx) < epsilon and \
             abs(_dy.value - dy) < epsilon
 
-    # def test_int_input(self):
-    #     with open('loma_code/int_input.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/int_input')
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     y = 3
-    #     _dy = ctypes.c_int(0)
-    #     dout = 4.56
-    #     lib.d_int_input(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
-    #     assert abs(_dx.value - dout * 5) < epsilon and \
-    #         _dy.value == 0
+    def test_int_input(self):
+        with open('loma_code/int_input.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/int_input')
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        y = 3
+        _dy = ctypes.c_int(0)
+        dout = 4.56
+        lib.d_int_input(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+        assert abs(_dx.value - dout * 5) < epsilon and \
+            _dy.value == 0
 
-    # def test_int_output(self):
-    #     with open('loma_code/int_output.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/int_output')
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     y = 3
-    #     _dy = ctypes.c_int(0)
-    #     lib.d_int_output(x, ctypes.byref(_dx), y, ctypes.byref(_dy), 1)
-    #     assert abs(_dx.value - 0) < epsilon
+    def test_int_output(self):
+        with open('loma_code/int_output.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/int_output')
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        y = 3
+        _dy = ctypes.c_int(0)
+        lib.d_int_output(x, ctypes.byref(_dx), y, ctypes.byref(_dy), 1)
+        assert abs(_dx.value - 0) < epsilon
 
-    # def test_int_assign(self):
-    #     with open('loma_code/int_assign.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/int_assign')
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     y = 3
-    #     _dy = ctypes.c_int(0)
-    #     dout = 0.3
-    #     lib.d_int_assign(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
-    #     # z0 = y
-    #     # w = z0 * x
-    #     # z1 = 6
-    #     # return w * z1 * x + y - 1
-    #     # -> y * x * 6 * x
-    #     assert abs(_dx.value - dout * (2 * 6 * 3 * x)) < epsilon
+    def test_int_assign(self):
+        with open('loma_code/int_assign.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/int_assign')
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        y = 3
+        _dy = ctypes.c_int(0)
+        dout = 0.3
+        lib.d_int_assign(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+        # z0 = y
+        # w = z0 * x
+        # z1 = 6
+        # return w * z1 * x + y - 1
+        # -> y * x * 6 * x
+        assert abs(_dx.value - dout * (2 * 6 * 3 * x)) < epsilon
 
     # def test_array_output(self):
     #     with open('loma_code/array_output.py') as f:

@@ -343,6 +343,7 @@ def reverse_diff(diff_func_id : str,
         def mutate_return(self, node):
             # HW2: TODO
             print("inside mutate_return")
+            print(node)
             if self.return_input_id is None:
                 return []
             self.adjoint = loma_ir.Var(self.return_input_id, lineno=node.lineno, t=node.val.t)
@@ -405,7 +406,8 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_const_int(self, node):
             # HW2: TODO
-            return super().mutate_const_int(node)
+            print("inside mutate_const_int")
+            return []
 
         def mutate_var(self, node):
             # HW2: TODO
@@ -532,6 +534,14 @@ def reverse_diff(diff_func_id : str,
                     stmt = [self.mutate_expr(arg) for arg in node.args]
                     self.adjoint = adjoint_copy
                     return stmt
+                
+                case "int2float":
+                    assert(len(node.args) == 1)
+                    return []
+
+                case "float2int":
+                    assert(len(node.args) == 1)
+                    return []
 
                 case _:
                     assert False
