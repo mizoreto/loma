@@ -224,8 +224,10 @@ def reverse_diff(diff_func_id : str,
     class ForwardPassMutator(irmutator.IRMutator):
         def __init__(self):
             self.var_to_diff_dict = dict()
+            self.type_to_stackName_ptrName_stackSize = dict()
         
         def mutate_return(self, node):
+            print("inside forward mutate_return")
             return []
 
         def mutate_declare(self, node):
@@ -235,6 +237,29 @@ def reverse_diff(diff_func_id : str,
             new_stmt = loma_ir.Declare(dtarget_name, node.t, lineno=node.lineno)
             self.var_to_diff_dict[target] = dtarget_name
             return [node, new_stmt]
+        
+        def mutate_assign(self, node):
+            print("inside forward mutate_assign")
+            target = node.target
+            target_type = target.t
+
+            if target_type not in self.type_to_stackName_ptrName_stackSize:
+                rand = random_id_generator()
+                stackName = "_t_" + type_to_string(target_type) + "_" + rand
+                ptrName = "_stack_ptr_" + type_to_string(target_type) + "_" + rand
+                self.type_to_stackName_ptrName_stackSize[target_type] = [stackName, ptrName, 1]    
+            else:
+                stackName = self.type_to_stackName_ptrName_stackSize[target_type][0]
+                ptrName = self.type_to_stackName_ptrName_stackSize[target_type][1]
+                self.type_to_stackName_ptrName_stackSize[target_type][2] += 1
+
+            var_stack = loma_ir.Var(stackName)
+            var_ptr = loma_ir.Var(ptrName)
+            push_to_stack_stmt = loma_ir.Assign(loma_ir.ArrayAccess(var_stack, var_ptr), target)
+            advance_ptr_stmt = loma_ir.Assign(var_ptr, loma_ir.BinaryOp(loma_ir.Add(), var_ptr, loma_ir.ConstInt(1)))
+
+            return [push_to_stack_stmt, advance_ptr_stmt, node]
+
 
     # Apply the differentiation.
     class RevDiffMutator(irmutator.IRMutator):
@@ -243,6 +268,10 @@ def reverse_diff(diff_func_id : str,
             print("inside mutate_function_def")
             new_args = []
             self.var_to_diff_dict = dict()
+            self.is_assign = False
+            self.return_input_id = None
+            self.assign_adj_count = 0
+
             for arg in node.args:
                 if arg.i == loma_ir.In():
                     new_args.append(arg)
@@ -259,14 +288,31 @@ def reverse_diff(diff_func_id : str,
                 new_args.append(loma_ir.Arg(new_return_input_id, node.ret_type, loma_ir.In()))
                 self.return_input_id = new_return_input_id
 
+            # forward mode
             forward_mutator = ForwardPassMutator()
             forward_body = irmutator.flatten([forward_mutator.mutate_stmt(stmt) for stmt in node.body])
 
             self.var_to_diff_dict = self.var_to_diff_dict | forward_mutator.var_to_diff_dict
             print(self.var_to_diff_dict)
 
+            self.type_to_stackName_ptrName_stackSize = forward_mutator.type_to_stackName_ptrName_stackSize
+            predeclare_stmt = []
+            for t_type in self.type_to_stackName_ptrName_stackSize.keys():
+                stackName, ptrName, stackSize = self.type_to_stackName_ptrName_stackSize[t_type]
+                predeclare_stmt.append(loma_ir.Declare(stackName, loma_ir.Array(t_type, stackSize)))
+                predeclare_stmt.append(loma_ir.Declare(ptrName, loma_ir.Int()))
+
+            print(predeclare_stmt)
+
+            # reverse mode
             reversed_body = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.body)])
-            new_body = forward_body + reversed_body
+
+            # tmp varaiables for mutate_assign
+            tmp_declare = []
+            for i in range(self.assign_adj_count):
+                tmp_declare.append(loma_ir.Declare(f'_adj_{i}', loma_ir.Float()))
+
+            new_body = predeclare_stmt + forward_body + tmp_declare + reversed_body
             new_node = loma_ir.FunctionDef(\
                 diff_func_id, 
                 new_args, 
@@ -280,6 +326,8 @@ def reverse_diff(diff_func_id : str,
         def mutate_return(self, node):
             # HW2: TODO
             print("inside mutate_return")
+            if self.return_input_id is None:
+                return []
             self.adjoint = loma_ir.Var(self.return_input_id, lineno=node.lineno, t=node.val.t)
             return self.mutate_expr(node.val)
 
@@ -294,7 +342,28 @@ def reverse_diff(diff_func_id : str,
         def mutate_assign(self, node):
             # HW2: TODO
             print("inside mutate_assign")
-            return super().mutate_assign(node)
+
+            self.is_assign = True
+            self.assign_adj_tmp_list = []
+
+            # pop value from stack
+            t_type = node.target.t
+            self.adjoint = loma_ir.Var(self.var_to_diff_dict[node.target.id], lineno=node.lineno, t=t_type)
+            adjoint_copy = self.adjoint
+            stackName, ptrName, _ = self.type_to_stackName_ptrName_stackSize[t_type]
+            var_stack = loma_ir.Var(stackName)
+            var_ptr = loma_ir.Var(ptrName)
+            pop_stmt = []
+            pop_stmt.append(loma_ir.Assign(var_ptr, loma_ir.BinaryOp(loma_ir.Sub(), var_ptr, loma_ir.ConstInt(1))))
+            pop_stmt.append(loma_ir.Assign(node.target, loma_ir.ArrayAccess(var_stack, var_ptr)))
+
+            base_stmt = self.mutate_expr(node.val)
+
+            zero_diff_stmt = loma_ir.Assign(adjoint_copy, loma_ir.ConstFloat(0.0))
+
+            self.is_assign = False
+            self.adjoint = adjoint_copy
+            return [pop_stmt, self.assign_adj_tmp_list, zero_diff_stmt, base_stmt]
 
         def mutate_ifelse(self, node):
             # HW3: TODO
@@ -320,8 +389,17 @@ def reverse_diff(diff_func_id : str,
         def mutate_var(self, node):
             # HW2: TODO
             print("inside mutate_var")
-            dvar = loma_ir.Var(self.var_to_diff_dict[node.id], lineno=node.lineno, t=node.t)
-            return [accum_deriv(dvar, self.adjoint, False)]
+            if self.is_assign:
+                adj_name = f'_adj_{self.assign_adj_count}'
+                self.assign_adj_count += 1
+                var_adj = loma_ir.Var(adj_name, t=loma_ir.Float())
+                self.assign_adj_tmp_list.append(accum_deriv(var_adj, self.adjoint, True))
+
+                dvar = loma_ir.Var(self.var_to_diff_dict[node.id], lineno=node.lineno, t=node.t)
+                return [accum_deriv(dvar, var_adj, False)]
+            else:
+                dvar = loma_ir.Var(self.var_to_diff_dict[node.id], lineno=node.lineno, t=node.t)
+                return [accum_deriv(dvar, self.adjoint, False)]
 
         def mutate_array_access(self, node):
             # HW2: TODO

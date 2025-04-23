@@ -140,153 +140,153 @@ class Homework2Test(unittest.TestCase):
         assert abs(_dx.value - x_dval) < epsilon and \
                abs(_dy.value - y_dval) < epsilon
 
-    # def test_assign1(self):
-    #     with open('loma_code/assign1.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/assign1')
-    #     x = -3.0
-    #     _dx = ctypes.c_float(0)
-    #     y = 5.0
-    #     _dy = ctypes.c_float(0)
-    #     dout = 3.0
-    #     lib.d_assign1(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_assign1(self):
+        with open('loma_code/assign1.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/assign1')
+        x = -3.0
+        _dx = ctypes.c_float(0)
+        y = 5.0
+        _dy = ctypes.c_float(0)
+        dout = 3.0
+        lib.d_assign1(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     assert abs(_dx.value - 3 * dout) < epsilon and \
-    #         abs(_dy.value - 5 * dout) < epsilon
+        assert abs(_dx.value - 3 * dout) < epsilon and \
+            abs(_dy.value - 5 * dout) < epsilon
 
-    # def test_assign2(self):
-    #     with open('loma_code/assign2.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/assign2')
-    #     x = 2.0
-    #     _dx = ctypes.c_float(0)
-    #     y = -6.0
-    #     _dy = ctypes.c_float(0)
-    #     dout = 3.5
-    #     lib.d_assign2(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_assign2(self):
+        with open('loma_code/assign2.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/assign2')
+        x = 2.0
+        _dx = ctypes.c_float(0)
+        y = -6.0
+        _dy = ctypes.c_float(0)
+        dout = 3.5
+        lib.d_assign2(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     assert abs(_dx.value - (2.5 + y) * dout) < epsilon and \
-    #         abs(_dy.value - (-3.0 + x) * dout) < epsilon
+        assert abs(_dx.value - (2.5 + y) * dout) < epsilon and \
+            abs(_dy.value - (-3.0 + x) * dout) < epsilon
 
-    # def test_assign3(self):
-    #     with open('loma_code/assign3.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/assign3')
-    #     x = 2.0
-    #     _dx = ctypes.c_float(0)
-    #     y = -6.0
-    #     _dy = ctypes.c_float(0)
-    #     dout = 3.5
-    #     lib.d_assign3(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_assign3(self):
+        with open('loma_code/assign3.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/assign3')
+        x = 2.0
+        _dx = ctypes.c_float(0)
+        y = -6.0
+        _dy = ctypes.c_float(0)
+        dout = 3.5
+        lib.d_assign3(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     assert abs(_dx.value - y * dout) < epsilon and \
-    #         abs(_dy.value - x * dout) < epsilon
+        assert abs(_dx.value - y * dout) < epsilon and \
+            abs(_dy.value - x * dout) < epsilon
 
-    # def test_assign4(self):
-    #     with open('loma_code/assign4.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/assign4')
-    #     x = 2.0
-    #     _dx = ctypes.c_float(0)
-    #     y = -6.0
-    #     _dy = ctypes.c_float(0)
-    #     dout = 3.5
-    #     lib.d_assign4(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_assign4(self):
+        with open('loma_code/assign4.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/assign4')
+        x = 2.0
+        _dx = ctypes.c_float(0)
+        y = -6.0
+        _dy = ctypes.c_float(0)
+        dout = 3.5
+        lib.d_assign4(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     z1 = 2.5 * x - 3.0 * y
-    #     z2 = z1 * z1 + z1 * x * y + z1
+        z1 = 2.5 * x - 3.0 * y
+        z2 = z1 * z1 + z1 * x * y + z1
 
-    #     dz2 = dout
-    #     dz1 = 2 * z1 * dz2 + x * y * dz2 + dz2
-    #     dx = dz2 * z1 * y
-    #     dy = dz2 * z1 * x
-    #     dx += dz1 * 2.5
-    #     dy -= dz1 * 3.0
+        dz2 = dout
+        dz1 = 2 * z1 * dz2 + x * y * dz2 + dz2
+        dx = dz2 * z1 * y
+        dy = dz2 * z1 * x
+        dx += dz1 * 2.5
+        dy -= dz1 * 3.0
 
-    #     assert abs(_dx.value - dx) < epsilon and \
-    #         abs(_dy.value - dy) < epsilon
+        assert abs(_dx.value - dx) < epsilon and \
+            abs(_dy.value - dy) < epsilon
 
-    # def test_assign5(self):
-    #     with open('loma_code/assign5.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/assign5')
-    #     x = -3.0
-    #     _dx = ctypes.c_float(0)
-    #     y = 5.0
-    #     _dy = ctypes.c_float(0)
-    #     dout = 3.0
-    #     lib.d_assign5(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+    def test_assign5(self):
+        with open('loma_code/assign5.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/assign5')
+        x = -3.0
+        _dx = ctypes.c_float(0)
+        y = 5.0
+        _dy = ctypes.c_float(0)
+        dout = 3.0
+        lib.d_assign5(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
 
-    #     z0 = x * y
-    #     w0 = z0
-    #     z1 = x + y
-    #     w1 = w0 + z1 * z1
-    #     z2 = 2 * x
-    #     z3 = z2 + 1.0
-    #     z4 = 3.0 * z3 * z3 + w1
+        z0 = x * y
+        w0 = z0
+        z1 = x + y
+        w1 = w0 + z1 * z1
+        z2 = 2 * x
+        z3 = z2 + 1.0
+        z4 = 3.0 * z3 * z3 + w1
 
-    #     dz4 = dout
-    #     dz3 = dz4 * 6.0 * z3
-    #     dw1 = dz4
-    #     dz2 = dz3
-    #     dx = dz2 * 2
-    #     dw0 = dw1
-    #     dz1 = dw1 * z1 * 2
-    #     dx += dz1
-    #     dy = dz1
-    #     dz0 = dw0
-    #     dx += dz0 * y
-    #     dy += dz0 * x
+        dz4 = dout
+        dz3 = dz4 * 6.0 * z3
+        dw1 = dz4
+        dz2 = dz3
+        dx = dz2 * 2
+        dw0 = dw1
+        dz1 = dw1 * z1 * 2
+        dx += dz1
+        dy = dz1
+        dz0 = dw0
+        dx += dz0 * y
+        dy += dz0 * x
 
-    #     assert abs(_dx.value - dx) < epsilon and \
-    #         abs(_dy.value - dy) < epsilon
+        assert abs(_dx.value - dx) < epsilon and \
+            abs(_dy.value - dy) < epsilon
 
-    # def test_assign_args(self):
-    #     with open('loma_code/assign_args.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/assign_args')
-    #     w = -1.3
-    #     _dw = ctypes.c_float(0)
-    #     x = -3.0
-    #     _dx = ctypes.c_float(0)
-    #     y = 5.0
-    #     _dy = ctypes.c_float(0)
-    #     z = 3.0
-    #     _dz = ctypes.c_float(0)
-    #     dout = 2.7
-    #     lib.d_assign_args(w,
-    #                       ctypes.byref(_dw),
-    #                       x,
-    #                       ctypes.byref(_dx),
-    #                       y,
-    #                       ctypes.byref(_dy),
-    #                       z,
-    #                       ctypes.byref(_dz),
-    #                       dout)
+    def test_assign_args(self):
+        with open('loma_code/assign_args.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/assign_args')
+        w = -1.3
+        _dw = ctypes.c_float(0)
+        x = -3.0
+        _dx = ctypes.c_float(0)
+        y = 5.0
+        _dy = ctypes.c_float(0)
+        z = 3.0
+        _dz = ctypes.c_float(0)
+        dout = 2.7
+        lib.d_assign_args(w,
+                          ctypes.byref(_dw),
+                          x,
+                          ctypes.byref(_dx),
+                          y,
+                          ctypes.byref(_dy),
+                          z,
+                          ctypes.byref(_dz),
+                          dout)
 
-    #     w1 = 5.0
-    #     x1 = w1 + x + y + z
-    #     y1 = 6.0
-    #     z1 = x1 * x1
+        w1 = 5.0
+        x1 = w1 + x + y + z
+        y1 = 6.0
+        z1 = x1 * x1
 
-    #     dz1 = dout
-    #     dx1 = dz1 * 2 * x1
-    #     dw1 = dx1
-    #     dx = dx1
-    #     dy = dx1
-    #     dz = dx1
-    #     dw = 0.0
+        dz1 = dout
+        dx1 = dz1 * 2 * x1
+        dw1 = dx1
+        dx = dx1
+        dy = dx1
+        dz = dx1
+        dw = 0.0
 
-    #     assert abs(_dw.value - dw) < epsilon and \
-    #         abs(_dx.value - dx) < epsilon and \
-    #         abs(_dy.value - dy) < epsilon and \
-    #         abs(_dz.value - dz) < epsilon
+        assert abs(_dw.value - dw) < epsilon and \
+            abs(_dx.value - dx) < epsilon and \
+            abs(_dy.value - dy) < epsilon and \
+            abs(_dz.value - dz) < epsilon
 
     # def test_refs_out(self):
     #     with open('loma_code/refs_out.py') as f:
