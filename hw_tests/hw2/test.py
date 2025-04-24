@@ -573,77 +573,77 @@ class Homework2Test(unittest.TestCase):
                abs(_dpointer_arr[1][1] - 2 * dout * pointer_arr[1][1]) < epsilon and \
                abs(_dpointer_arr[2][0] - 2 * dout * pointer_arr[2][0]) < epsilon
 
-    # def test_struct_input(self):
-    #     with open('loma_code/struct_input.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/struct_input')
-    #     Foo = structs['Foo']
-    #     f = Foo(1.23, 3, 4.56)
-    #     _df = Foo(0.0, 0, 0.0)
-    #     dout = 0.3
-    #     # out = 5 * foo.x + foo.y + foo.x * foo.z - 1
-    #     lib.d_struct_input(f, ctypes.byref(_df), dout)
-    #     assert abs(_df.x - dout * (5 + f.z)) < epsilon and \
-    #         abs(_df.z - dout * (f.x))
+    def test_struct_input(self):
+        with open('loma_code/struct_input.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/struct_input')
+        Foo = structs['Foo']
+        f = Foo(1.23, 3, 4.56)
+        _df = Foo(0.0, 0, 0.0)
+        dout = 0.3
+        # out = 5 * foo.x + foo.y + foo.x * foo.z - 1
+        lib.d_struct_input(f, ctypes.byref(_df), dout)
+        assert abs(_df.x - dout * (5 + f.z)) < epsilon and \
+            abs(_df.z - dout * (f.x))
 
-    # def test_struct_output(self):
-    #     with open('loma_code/struct_output.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/struct_output')
+    def test_struct_output(self):
+        with open('loma_code/struct_output.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/struct_output')
 
-    #     Foo = structs['Foo']
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     y = 3
-    #     _dy = ctypes.c_int(0)
-    #     dout = Foo(a=0.5,b=100)
-    #     lib.d_struct_output(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
-    #     # foo.a = x + y * x
-    #     assert abs(_dx.value - 0.5 * (1 + 3)) < epsilon
+        Foo = structs['Foo']
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        y = 3
+        _dy = ctypes.c_int(0)
+        dout = Foo(a=0.5,b=100)
+        lib.d_struct_output(x, ctypes.byref(_dx), y, ctypes.byref(_dy), dout)
+        # foo.a = x + y * x
+        assert abs(_dx.value - 0.5 * (1 + 3)) < epsilon
 
-    # def test_struct_declare(self):
-    #     with open('loma_code/struct_declare.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/struct_declare')
+    def test_struct_declare(self):
+        with open('loma_code/struct_declare.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/struct_declare')
 
-    #     Foo = structs['Foo']
-    #     f = Foo(a=1.23,b=3)
-    #     _df = Foo(a=0.0,b=0)
-    #     dout = Foo(a=0.3,b=100)
-    #     lib.d_struct_declare(f, ctypes.byref(_df), dout)
-    #     assert abs(_df.a - dout.a * 2) < epsilon
+        Foo = structs['Foo']
+        f = Foo(a=1.23,b=3)
+        _df = Foo(a=0.0,b=0)
+        dout = Foo(a=0.3,b=100)
+        lib.d_struct_declare(f, ctypes.byref(_df), dout)
+        assert abs(_df.a - dout.a * 2) < epsilon
 
-    # def test_struct_assign(self):
-    #     with open('loma_code/struct_assign.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/struct_assign')
+    def test_struct_assign(self):
+        with open('loma_code/struct_assign.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/struct_assign')
 
-    #     Foo = structs['Foo']
-    #     f = Foo(a=1.23, b=3)
-    #     _df = Foo(a=0.0, b=0)
-    #     dout = Foo(a=0.3,b=100)
-    #     lib.d_struct_assign(f, ctypes.byref(_df), dout)
-    #     assert abs(_df.a - dout.a * 2) < epsilon
+        Foo = structs['Foo']
+        f = Foo(a=1.23, b=3)
+        _df = Foo(a=0.0, b=0)
+        dout = Foo(a=0.3,b=100)
+        lib.d_struct_assign(f, ctypes.byref(_df), dout)
+        assert abs(_df.a - dout.a * 2) < epsilon
 
-    # def test_multivariate(self):
-    #     with open('loma_code/multivariate.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/poly')
-    #     x = ctypes.c_float(0.6)
-    #     y = ctypes.c_float(0.7)
-    #     dx = ctypes.c_float(0)
-    #     dy = ctypes.c_float(0)
-    #     lib.multivariate_grad(x, y, ctypes.byref(dx), ctypes.byref(dy))
-    #     # out = 3 * x * cos (y) + y * y
-    #     # dx = 3 * cos(y)
-    #     # dy = - 3 * x * sin (y) + 2 * y
-    #     assert abs(dx.value - 3 * math.cos(y.value)) < epsilon and \
-    #         abs(dy.value - (-3 * x.value * math.sin(y.value) + 2 * y.value)) < epsilon
+    def test_multivariate(self):
+        with open('loma_code/multivariate.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/poly')
+        x = ctypes.c_float(0.6)
+        y = ctypes.c_float(0.7)
+        dx = ctypes.c_float(0)
+        dy = ctypes.c_float(0)
+        lib.multivariate_grad(x, y, ctypes.byref(dx), ctypes.byref(dy))
+        # out = 3 * x * cos (y) + y * y
+        # dx = 3 * cos(y)
+        # dy = - 3 * x * sin (y) + 2 * y
+        assert abs(dx.value - 3 * math.cos(y.value)) < epsilon and \
+            abs(dy.value - (-3 * x.value * math.sin(y.value) + 2 * y.value)) < epsilon
 
 if __name__ == '__main__':
     unittest.main()
