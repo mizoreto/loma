@@ -398,7 +398,7 @@ def reverse_diff(diff_func_id : str,
             new_then_stmts = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.then_stmts)])
             new_else_stmts = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.else_stmts)])
 
-            return loma_ir.IfElse(node.cond, new_then_stmts, new_else_stmts)
+            return loma_ir.IfElse(node.cond, new_then_stmts, new_else_stmts, lineno=node.lineno)
 
         def mutate_call_stmt(self, node):
             # HW3: TODO

@@ -138,7 +138,12 @@ def forward_diff(diff_func_id : str,
 
         def mutate_while(self, node):
             # HW3: TODO
-            return super().mutate_while(node)
+            print("inside forward mutate_while")
+            cond_left = self.mutate_expr(node.cond.left)[0]
+            cond_right = self.mutate_expr(node.cond.right)[0]
+            new_cond = loma_ir.BinaryOp(node.cond.op, cond_left, cond_right)
+            new_bodies = [self.mutate_stmt(stmt) for stmt in node.body]
+            return loma_ir.While(new_cond, node.max_iter, new_bodies)
 
         def mutate_const_float(self, node):
             # HW1: TODO
