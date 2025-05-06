@@ -393,7 +393,12 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_ifelse(self, node):
             # HW3: TODO
-            return super().mutate_ifelse(node)
+            print("inside reverse mutate_ifelse")
+
+            new_then_stmts = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.then_stmts)])
+            new_else_stmts = irmutator.flatten([self.mutate_stmt(stmt) for stmt in reversed(node.else_stmts)])
+
+            return loma_ir.IfElse(node.cond, new_then_stmts, new_else_stmts)
 
         def mutate_call_stmt(self, node):
             # HW3: TODO
