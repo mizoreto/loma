@@ -90,6 +90,8 @@ def reverse_diff(diff_func_id : str,
                 if overwrite:
                     return [loma_ir.Assign(target, deriv)]
                 else:
+                    if func.is_simd:
+                        return [loma_ir.CallStmt(loma_ir.Call("atomic_add", [target, deriv]))]
                     return [loma_ir.Assign(target,
                         loma_ir.BinaryOp(loma_ir.Add(), target, deriv))]
             case loma_ir.Struct():
@@ -769,6 +771,17 @@ def reverse_diff(diff_func_id : str,
                 case "float2int":
                     assert(len(node.args) == 1)
                     return []
+                
+                case "thread_id":
+                    assert(len(node.args) == 0)
+                    return []
+                
+                case "atomic_add":
+                    assert(len(node.args) == 2)
+                    target = node.args[0]
+                    source = node.args[1]
+                    equal_stmt = loma_ir.Assign(target, source)
+                    return [self.mutate_stmt(equal_stmt)]
 
                 case _:
                     print ("inside reverse function call")

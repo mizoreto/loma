@@ -383,66 +383,66 @@ class Homework3Test(unittest.TestCase):
         # dx = dout * (1 + 2 * x * n^3))
         assert abs(_dx.value - dout * (1 + 2 * x * n * n * n)) < epsilon
 
-    # def test_parallel_copy(self):
-    #     with open('loma_code/parallel_copy.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'ispc',
-    #                                         output_filename = '_code/parallel_copy')
-    #     x = 0.123
-    #     n = 10000
-    #     _dx = ctypes.c_float(0)
-    #     np.random.seed(1234)
-    #     _dz = np.random.random(n).astype('f') / n
-    #     lib.rev_parallel_copy(x,
-    #         ctypes.byref(_dx),
-    #         _dz.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         n)
+    def test_parallel_copy(self):
+        with open('loma_code/parallel_copy.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'ispc',
+                                            output_filename = '_code/parallel_copy')
+        x = 0.123
+        n = 10000
+        _dx = ctypes.c_float(0)
+        np.random.seed(1234)
+        _dz = np.random.random(n).astype('f') / n
+        lib.rev_parallel_copy(x,
+            ctypes.byref(_dx),
+            _dz.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            n)
 
-    #     assert abs(_dx.value - np.sum(_dz)) < epsilon
+        assert abs(_dx.value - np.sum(_dz)) < epsilon
 
-    # def test_parallel_add(self):
-    #     with open('loma_code/parallel_add.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'ispc',
-    #                                         output_filename = '_code/parallel_add')
+    def test_parallel_add(self):
+        with open('loma_code/parallel_add.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'ispc',
+                                            output_filename = '_code/parallel_add')
 
-    #     np.random.seed(seed=1234)
-    #     n = 10000
-    #     x = np.random.random(n).astype('f') / n
-    #     _dx = np.zeros_like(x)
-    #     y = np.random.random(n).astype('f') / n
-    #     _dy = np.zeros_like(y)
-    #     z = np.zeros_like(x)
-    #     _dz = np.random.random(n).astype('f') / n
-    #     lib.rev_parallel_add(
-    #         x.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         _dx.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         y.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         _dy.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         _dz.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         n)
+        np.random.seed(seed=1234)
+        n = 10000
+        x = np.random.random(n).astype('f') / n
+        _dx = np.zeros_like(x)
+        y = np.random.random(n).astype('f') / n
+        _dy = np.zeros_like(y)
+        z = np.zeros_like(x)
+        _dz = np.random.random(n).astype('f') / n
+        lib.rev_parallel_add(
+            x.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            _dx.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            y.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            _dy.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            _dz.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            n)
 
-    #     assert np.sum(np.abs(_dx - _dz)) / n < epsilon and \
-    #         np.sum(np.abs(_dy - _dz)) / n < epsilon
+        assert np.sum(np.abs(_dx - _dz)) / n < epsilon and \
+            np.sum(np.abs(_dy - _dz)) / n < epsilon
 
-    # def test_parallel_reduce(self):
-    #     with open('loma_code/parallel_reduce.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'ispc',
-    #                                         output_filename = '_code/parallel_reduce')
+    def test_parallel_reduce(self):
+        with open('loma_code/parallel_reduce.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'ispc',
+                                            output_filename = '_code/parallel_reduce')
 
-    #     np.random.seed(1234)
-    #     n = 10000
-    #     x = np.random.random(n).astype('f') / n
-    #     _dx = np.zeros_like(x)
-    #     _dz = 0.234
-    #     lib.rev_parallel_reduce(\
-    #         x.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         _dx.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-    #         _dz,
-    #         n)
+        np.random.seed(1234)
+        n = 10000
+        x = np.random.random(n).astype('f') / n
+        _dx = np.zeros_like(x)
+        _dz = 0.234
+        lib.rev_parallel_reduce(\
+            x.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            _dx.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            _dz,
+            n)
 
-    #     assert np.sum(np.abs(_dx - _dz)) / n < epsilon
+        assert np.sum(np.abs(_dx - _dz)) / n < epsilon
 
 if __name__ == '__main__':
     unittest.main()
