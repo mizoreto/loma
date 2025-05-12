@@ -255,6 +255,10 @@ def reverse_diff(diff_func_id : str,
             self.var_to_diff_dict = dict()
             self.type_to_stackName_ptrName_stackSize = dict()
             self.out_args = out_args
+            self.curr_while_counters = []
+            self.all_while_counters = []
+            self.num_while_counters = 0
+            self.in_while = False
         
         def mutate_return(self, node):
             print("inside forward mutate_return")
@@ -280,11 +284,21 @@ def reverse_diff(diff_func_id : str,
                 rand = random_id_generator()
                 stackName = "_t_" + type_to_string(target_type) + "_" + rand
                 ptrName = "_stack_ptr_" + type_to_string(target_type) + "_" + rand
-                self.type_to_stackName_ptrName_stackSize[target_type] = [stackName, ptrName, 1]    
+                if self.in_while:
+                    while_size = self.curr_while_counters[-1]["size"] * self.curr_while_counters[-1]["max_iter"]
+                    self.type_to_stackName_ptrName_stackSize[target_type] = [stackName, ptrName, while_size]
+                else:
+                    self.type_to_stackName_ptrName_stackSize[target_type] = [stackName, ptrName, 1]
+                
+
             else:
                 stackName = self.type_to_stackName_ptrName_stackSize[target_type][0]
                 ptrName = self.type_to_stackName_ptrName_stackSize[target_type][1]
-                self.type_to_stackName_ptrName_stackSize[target_type][2] += 1
+                if self.in_while:
+                    while_size = self.curr_while_counters[-1]["size"] * self.curr_while_counters[-1]["max_iter"]
+                    self.type_to_stackName_ptrName_stackSize[target_type][2] += while_size
+                else:
+                    self.type_to_stackName_ptrName_stackSize[target_type][2] += 1
 
             var_stack = loma_ir.Var(stackName)
             var_ptr = loma_ir.Var(ptrName)
@@ -310,11 +324,19 @@ def reverse_diff(diff_func_id : str,
                         rand = random_id_generator()
                         stackName = "_t_" + type_to_string(arg_type) + "_" + rand
                         ptrName = "_stack_ptr_" + type_to_string(arg_type) + "_" + rand
-                        self.type_to_stackName_ptrName_stackSize[arg_type] = [stackName, ptrName, 1]    
+                        if self.in_while:
+                            while_size = self.curr_while_counters[-1]["size"] * self.curr_while_counters[-1]["max_iter"]
+                            self.type_to_stackName_ptrName_stackSize[arg_type] = [stackName, ptrName, while_size]
+                        else:
+                            self.type_to_stackName_ptrName_stackSize[arg_type] = [stackName, ptrName, 1]
                     else:
                         stackName = self.type_to_stackName_ptrName_stackSize[arg_type][0]
                         ptrName = self.type_to_stackName_ptrName_stackSize[arg_type][1]
-                        self.type_to_stackName_ptrName_stackSize[arg_type][2] += 1
+                        if self.in_while:
+                            while_size = self.curr_while_counters[-1]["size"] * self.curr_while_counters[-1]["max_iter"]
+                            self.type_to_stackName_ptrName_stackSize[arg_type][2] += while_size
+                        else:
+                            self.type_to_stackName_ptrName_stackSize[arg_type][2] += 1
 
                     var_stack = loma_ir.Var(stackName)
                     var_ptr = loma_ir.Var(ptrName)
@@ -322,6 +344,74 @@ def reverse_diff(diff_func_id : str,
                     stmts.append(loma_ir.Assign(var_ptr, loma_ir.BinaryOp(loma_ir.Add(), var_ptr, loma_ir.ConstInt(1))))  
 
             return [stmts, node]
+        
+        def mutate_while(self, node):
+            print("inside forward mutate_while")
+            temp = dict()
+            rand = random_id_generator()
+            temp["counter_name"] = f'_loop_counter_{self.num_while_counters}_{rand}'
+
+            # outermost loop
+            if self.curr_while_counters == []:
+                self.in_while = True
+                temp["type"] = "int"
+                temp["max_iter"] = node.max_iter
+                temp["size"] = 1
+                self.curr_while_counters.append(temp)
+                self.num_while_counters += 1
+
+                new_body = irmutator.flatten([self.mutate_stmt(stmt) for stmt in node.body])
+                counter = loma_ir.Var(temp["counter_name"], t=loma_ir.Int())
+                in_loop_count_stmt = loma_ir.Assign(counter, loma_ir.BinaryOp(loma_ir.Add(), counter, loma_ir.ConstInt(1)))
+                new_body = new_body + [in_loop_count_stmt]
+
+                prev_def = []
+                for counter_dict in self.curr_while_counters:
+                    if counter_dict["type"] == "int":
+                        prev_def.append(loma_ir.Declare(counter_dict["counter_name"], loma_ir.Int(), loma_ir.ConstInt(0)))
+                    elif counter_dict["type"] == "array":
+                        prev_def.append(loma_ir.Declare(counter_dict["counter_name"], loma_ir.Array(loma_ir.Int(), counter_dict["size"])))
+                        ptr_name = counter_dict["counter_name"] + "_ptr"
+                        prev_def.append(loma_ir.Declare(ptr_name, loma_ir.Int(), loma_ir.ConstInt(0)))
+                        tmp_name = counter_dict["counter_name"] + "_tmp"
+                        prev_def.append(loma_ir.Declare(tmp_name, loma_ir.Int()))
+                    else:
+                        assert False
+
+                self.all_while_counters += self.curr_while_counters
+                self.curr_while_counters = []
+                self.in_while = False
+                return [prev_def, loma_ir.While(node.cond, node.max_iter, new_body, lineno=node.lineno)]
+
+            # inner loop
+            else:
+                temp["type"] = "array"
+                temp["max_iter"] = node.max_iter
+                curr_list = self.curr_while_counters
+                last_while_counter = curr_list[self.num_while_counters - 1]
+                temp["size"] = last_while_counter["max_iter"] * last_while_counter["size"]
+                self.curr_while_counters.append(temp)
+                self.num_while_counters += 1
+                
+                new_body = irmutator.flatten([self.mutate_stmt(stmt) for stmt in node.body])
+
+                tmp_name = temp["counter_name"] + "_tmp"
+                counter_tmp = loma_ir.Var(tmp_name, t=loma_ir.Int())
+                pre_init_stmt = loma_ir.Assign(counter_tmp, loma_ir.ConstInt(0))
+                in_loop_count_stmt = loma_ir.Assign(counter_tmp, loma_ir.BinaryOp(loma_ir.Add(), counter_tmp, loma_ir.ConstInt(1)))
+
+                new_body = new_body + [in_loop_count_stmt]
+
+                counter_array = loma_ir.Var(temp["counter_name"], t=loma_ir.Array(loma_ir.Int()))
+                counter_ptr = loma_ir.Var(temp["counter_name"] + "_ptr", t=loma_ir.Int())
+                post_store_stmt = loma_ir.Assign(loma_ir.ArrayAccess(counter_array, counter_ptr, t=loma_ir.Int()), counter_tmp)
+                post_update_stmt = loma_ir.Assign(counter_ptr, loma_ir.BinaryOp(loma_ir.Add(), counter_ptr, loma_ir.ConstInt(1)))
+
+                return [pre_init_stmt, loma_ir.While(node.cond, node.max_iter, new_body, lineno=node.lineno), post_store_stmt, post_update_stmt]
+            
+            
+
+
 
 
     # Apply the differentiation.
@@ -336,6 +426,8 @@ def reverse_diff(diff_func_id : str,
             self.assign_adj_count = 0
             self.assign_adj_types = []
             self.out_args = []
+            self.while_counter = []
+            self.while_ptr = 0
 
             node = CallNormalizeMutator().mutate_function_def(node)
             
@@ -361,6 +453,7 @@ def reverse_diff(diff_func_id : str,
             forward_body = irmutator.flatten([forward_mutator.mutate_stmt(stmt) for stmt in node.body])
 
             self.var_to_diff_dict = self.var_to_diff_dict | forward_mutator.var_to_diff_dict
+            self.while_counter = forward_mutator.all_while_counters
 
             self.type_to_stackName_ptrName_stackSize = forward_mutator.type_to_stackName_ptrName_stackSize
             predeclare_stmt = []
@@ -477,7 +570,34 @@ def reverse_diff(diff_func_id : str,
 
         def mutate_while(self, node):
             # HW3: TODO
-            return super().mutate_while(node)
+            print("inside reverse mutate_while")
+            curr_while_counter = self.while_counter[self.while_ptr]
+            counter_name = curr_while_counter["counter_name"]
+            counter_type = curr_while_counter["type"]
+
+            pre_loop_stmts = []
+            post_body_stmts = []
+
+            if counter_type == "int":
+                var_counter = loma_ir.Var(counter_name, t=loma_ir.Int(), lineno=node.lineno)
+                new_cond = loma_ir.BinaryOp(loma_ir.Greater(), var_counter, loma_ir.ConstInt(0))
+                post_body_stmts.append(loma_ir.Assign(var_counter, loma_ir.BinaryOp(loma_ir.Sub(), var_counter, loma_ir.ConstInt(1))))
+            elif counter_type == "array":
+                var_tmp = loma_ir.Var(counter_name + "_tmp", t=loma_ir.Int())
+                new_cond = loma_ir.BinaryOp(loma_ir.Greater(), var_tmp, loma_ir.ConstInt(0))
+
+                var_ptr = loma_ir.Var(counter_name + "_ptr", t=loma_ir.Int())
+                var_array_counter = loma_ir.Var(counter_name, t=loma_ir.Array(loma_ir.Int()))
+                pre_loop_stmts.append(loma_ir.Assign(var_ptr, loma_ir.BinaryOp(loma_ir.Sub(), var_ptr, loma_ir.ConstInt(1))))
+                pre_loop_stmts.append(loma_ir.Assign(var_tmp, loma_ir.ArrayAccess(var_array_counter, var_ptr, t=loma_ir.Int())))
+                post_body_stmts.append(loma_ir.Assign(var_tmp, loma_ir.BinaryOp(loma_ir.Sub(), var_tmp, loma_ir.ConstInt(1))))
+            else:
+                assert False
+
+            self.while_ptr += 1
+            new_body = irmutator.flatten([self.mutate_stmt(stmt) for stmt in node.body])
+            new_body += post_body_stmts
+            return [pre_loop_stmts, loma_ir.While(new_cond, node.max_iter, new_body)]
 
         def mutate_const_float(self, node):
             # HW2: TODO

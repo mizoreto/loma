@@ -305,83 +305,83 @@ class Homework3Test(unittest.TestCase):
         # dx = dout * cos(2 * x * x) * 4 * x 
         assert abs(_dx.value - (dout * math.cos(2 * x * x) * 4 * x)) < epsilon
 
-    # def test_while_loop_fwd(self):
-    #     with open('loma_code/while_loop_fwd.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/while_loop_fwd')
-    #     _dfloat = structs['_dfloat']
-    #     x = _dfloat(1.23, 0.4)
-    #     n = 5
-    #     out = lib.fwd_while_loop(x, n)
+    def test_while_loop_fwd(self):
+        with open('loma_code/while_loop_fwd.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/while_loop_fwd')
+        _dfloat = structs['_dfloat']
+        x = _dfloat(1.23, 0.4)
+        n = 5
+        out = lib.fwd_while_loop(x, n)
 
-    #     # out = sin(sin(sin(sin(sin(x)))))
-    #     # dout = dx * (cos(sin(sin(sin(sin(x))))) *
-    #     #              cos(sin(sin(sin(x)))) *
-    #     #              cos(sin(sin(x))) *
-    #     #              cos(sin(x)) *
-    #     #              cos(x))
-    #     assert abs(out.dval - x.dval * (math.cos(math.sin(math.sin(math.sin(math.sin(x.val))))) * \
-    #                                     math.cos(math.sin(math.sin(math.sin(x.val))))) * \
-    #                                     math.cos(math.sin(math.sin(x.val))) * \
-    #                                     math.cos(math.sin(x.val)) * \
-    #                                     math.cos(x.val)) < epsilon
+        # out = sin(sin(sin(sin(sin(x)))))
+        # dout = dx * (cos(sin(sin(sin(sin(x))))) *
+        #              cos(sin(sin(sin(x)))) *
+        #              cos(sin(sin(x))) *
+        #              cos(sin(x)) *
+        #              cos(x))
+        assert abs(out.dval - x.dval * (math.cos(math.sin(math.sin(math.sin(math.sin(x.val))))) * \
+                                        math.cos(math.sin(math.sin(math.sin(x.val))))) * \
+                                        math.cos(math.sin(math.sin(x.val))) * \
+                                        math.cos(math.sin(x.val)) * \
+                                        math.cos(x.val)) < epsilon
 
-    # def test_while_loop_rev(self):
-    #     with open('loma_code/while_loop_rev.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/while_loop_rev')
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     n = 5
-    #     _dn = ctypes.c_int(0)
-    #     dout = 0.4
-    #     out = lib.rev_while_loop(x, _dx, n, _dn, dout)
+    def test_while_loop_rev(self):
+        with open('loma_code/while_loop_rev.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/while_loop_rev')
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        n = 5
+        _dn = ctypes.c_int(0)
+        dout = 0.4
+        out = lib.rev_while_loop(x, _dx, n, _dn, dout)
 
-    #     # out = sin(sin(sin(sin(sin(x)))))
-    #     # dx = dout * (cos(sin(sin(sin(sin(x))))) *
-    #     #              cos(sin(sin(sin(x)))) *
-    #     #              cos(sin(sin(x))) *
-    #     #              cos(sin(x)) *
-    #     #              cos(x))
-    #     assert abs(_dx.value - dout * (math.cos(math.sin(math.sin(math.sin(math.sin(x))))) * \
-    #                                    math.cos(math.sin(math.sin(math.sin(x))))) * \
-    #                                    math.cos(math.sin(math.sin(x))) * \
-    #                                    math.cos(math.sin(x)) * \
-    #                                    math.cos(x)) < epsilon
+        # out = sin(sin(sin(sin(sin(x)))))
+        # dx = dout * (cos(sin(sin(sin(sin(x))))) *
+        #              cos(sin(sin(sin(x)))) *
+        #              cos(sin(sin(x))) *
+        #              cos(sin(x)) *
+        #              cos(x))
+        assert abs(_dx.value - dout * (math.cos(math.sin(math.sin(math.sin(math.sin(x))))) * \
+                                       math.cos(math.sin(math.sin(math.sin(x))))) * \
+                                       math.cos(math.sin(math.sin(x))) * \
+                                       math.cos(math.sin(x)) * \
+                                       math.cos(x)) < epsilon
 
-    # def test_nested_while_loop_rev(self):
-    #     with open('loma_code/nested_while_loop_rev.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/nested_while_loop_rev')
-    #     x = 1.23
-    #     _dx = ctypes.c_float(0)
-    #     n = 5
-    #     _dn = ctypes.c_int(0)
-    #     dout = 0.4
-    #     lib.rev_nested_while_loop(x, _dx, n, _dn, dout)
+    def test_nested_while_loop_rev(self):
+        with open('loma_code/nested_while_loop_rev.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/nested_while_loop_rev')
+        x = 1.23
+        _dx = ctypes.c_float(0)
+        n = 5
+        _dn = ctypes.c_int(0)
+        dout = 0.4
+        lib.rev_nested_while_loop(x, _dx, n, _dn, dout)
 
-    #     # out = x + (n * (n-1)) * x^2
-    #     # dx = dout * (1 + x * (n * (n - 1)))
-    #     assert abs(_dx.value - dout * (x * (n * (n - 1)))) < epsilon
+        # out = x + (n * (n-1)) * x^2
+        # dx = dout * (1 + x * (n * (n - 1)))
+        assert abs(_dx.value - dout * (x * (n * (n - 1)))) < epsilon
 
-    # def test_three_level_while_loop_rev(self):
-    #     with open('loma_code/three_level_while_loop_rev.py') as f:
-    #         structs, lib = compiler.compile(f.read(),
-    #                                         target = 'c',
-    #                                         output_filename = '_code/three_level_while_loop_rev')
-    #     x = 0.123
-    #     _dx = ctypes.c_float(0)
-    #     n = 5
-    #     _dn = ctypes.c_int(0)
-    #     dout = 0.4
-    #     lib.rev_three_level_while_loop(x, _dx, n, _dn, dout)
+    def test_three_level_while_loop_rev(self):
+        with open('loma_code/three_level_while_loop_rev.py') as f:
+            structs, lib = compiler.compile(f.read(),
+                                            target = 'c',
+                                            output_filename = '_code/three_level_while_loop_rev')
+        x = 0.123
+        _dx = ctypes.c_float(0)
+        n = 5
+        _dn = ctypes.c_int(0)
+        dout = 0.4
+        lib.rev_three_level_while_loop(x, _dx, n, _dn, dout)
 
-    #     # out = x + n^3 * x^2
-    #     # dx = dout * (1 + 2 * x * n^3))
-    #     assert abs(_dx.value - dout * (1 + 2 * x * n * n * n)) < epsilon
+        # out = x + n^3 * x^2
+        # dx = dout * (1 + 2 * x * n^3))
+        assert abs(_dx.value - dout * (1 + 2 * x * n * n * n)) < epsilon
 
     # def test_parallel_copy(self):
     #     with open('loma_code/parallel_copy.py') as f:
