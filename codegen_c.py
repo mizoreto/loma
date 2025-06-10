@@ -45,6 +45,9 @@ class CCodegenVisitor(irvisitor.IRVisitor):
         self.code += '\t' * self.tab_count
 
     def visit_function_def(self, node):
+        ##########################
+        self._allocated_buffers = []
+        ##########################
         self.code += f'{type_to_string(node.ret_type)} {node.id}('
         for i, arg in enumerate(node.args):
             if i > 0:
@@ -69,6 +72,13 @@ class CCodegenVisitor(irvisitor.IRVisitor):
             self.tab_count -= 1
             self.emit_tabs()
             self.code += '}\n'
+        
+        ########################
+        if hasattr(self, '_allocated_buffers'):
+            for buf in self._allocated_buffers:
+                self.emit_tabs()
+                self.code += f'free({buf});\n'
+        #######################
         self.tab_count -= 1
         self.code += '}\n'
 
@@ -100,17 +110,37 @@ class CCodegenVisitor(irvisitor.IRVisitor):
 
     def visit_declare(self, node):
         self.emit_tabs()
+        # if not isinstance(node.t, loma_ir.Array):
+        #     self.code += f'{type_to_string(node.t)} {node.target}'
+        # else:
+        #     # Special rule for arrays
+        #     assert node.t.static_size != None
+        #     self.code += f'{type_to_string(node.t.t)} {node.target}[{node.t.static_size}]'
+        # if node.val is not None:
+        #     self.code += f' = {self.visit_expr(node.val)};\n'
+        # else:
+        #     self.code += ';\n'
+        #     self.init_zero(node.target, node.t)
         if not isinstance(node.t, loma_ir.Array):
             self.code += f'{type_to_string(node.t)} {node.target}'
-        else:
-            # Special rule for arrays
-            assert node.t.static_size != None
-            self.code += f'{type_to_string(node.t.t)} {node.target}[{node.t.static_size}]'
-        if node.val is not None:
-            self.code += f' = {self.visit_expr(node.val)};\n'
-        else:
+            if node.val is not None:
+                self.code += f' = {self.visit_expr(node.val)}'
             self.code += ';\n'
-            self.init_zero(node.target, node.t)
+            if node.val is None:
+                self.init_zero(node.target, node.t)
+        else:
+            assert node.t.static_size is not None
+            if node.t.static_size > 65536:
+                self.code += f'{type_to_string(node.t.t)}* {node.target} = '
+                self.code += f'({type_to_string(node.t.t)}*)malloc(sizeof({type_to_string(node.t.t)}) * {node.t.static_size});\n'
+                self.init_zero(node.target, node.t)
+                if not hasattr(self, '_allocated_buffers'):
+                    self._allocated_buffers = []
+                self._allocated_buffers.append(node.target)
+            else:
+                self.code += f'{type_to_string(node.t.t)} {node.target}[{node.t.static_size}];\n'
+                self.init_zero(node.target, node.t)
+
 
     def visit_assign(self, node):
         self.emit_tabs()
@@ -250,7 +280,9 @@ def codegen_c(structs : dict[str, loma_ir.Struct],
     sorted_structs_list = compiler.topo_sort_structs(structs)
 
     # Definition of structs
-    code = ''
+    # code = ''
+    code = '#include <stdlib.h>\n'  # 为 malloc 和 free 添加声明
+
     for s in sorted_structs_list:
         code += f'typedef struct {{\n'
         for m in s.members:

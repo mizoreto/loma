@@ -109,7 +109,7 @@ def reflect(I: In[Vec3], N: In[Vec3]) -> Vec3:
 def refract(I: In[Vec3], N: In[Vec3], eta: In[float]) -> Vec3:
     cosi: float = dot(N, I)
     k: float = 1.0 - eta * eta * (1.0 - cosi * cosi)
-    ret: Vec3
+    ret: Vec3 = make_vec3(0.0, 0.0, 0.0)
     if k < 0.0:
         ret = make_vec3(0.0, 0.0, 0.0)
     else:
@@ -141,7 +141,7 @@ def scene(position: In[Vec3]) -> float:
     return length(position) - height
 
 def getNormal(pos: In[Vec3], smoothness: In[float]) -> Vec3:
-    n: Vec3
+    n: Vec3 = make_vec3(0.0, 0.0, 0.0)
     dx: Vec3 = make_vec3(smoothness, 0.0, 0.0)
     dy: Vec3 = make_vec3(0.0, smoothness, 0.0)
     dz: Vec3 = make_vec3(0.0, 0.0, smoothness)
@@ -156,7 +156,7 @@ def getNormal(pos: In[Vec3], smoothness: In[float]) -> Vec3:
 def raymarch(position: In[Vec3], direction: In[Vec3]) -> float:
     total_distance: float = 0.0
     i: int = 0
-    new_pos: Vec3
+    new_pos: Vec3 = make_vec3(0.0, 0.0, 0.0)
     result: float
     while (i < 32, max_iter := 32):
         new_pos = add(position, mul_scalar_vec3(total_distance, direction))
@@ -188,43 +188,46 @@ def calcLookAtMatrix(ro: In[Vec3], ta: In[Vec3], roll: In[float], uu: Out[Vec3],
     ww = ww_val
 
 def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[float], iTime: In[float], environment: In[Array[Vec4]], width: In[int], height: In[int], fragColor: Out[Vec4]):
-    uv: Vec3
+    uv: Vec3 = make_vec3(0.0, 0.0, 0.0)
     uv.x = fragCoord.x / iResolutionY - 0.5 * iResolutionX / iResolutionY
-    uv.y = -fragCoord.y / iResolutionY + 0.5
+    uv.y = fragCoord.y / iResolutionY - 0.5
     uv.z = 0.0
 
     origin: Vec3 = make_vec3(sin(iTime * 0.1) * 2.5, 0.0, cos(iTime * 0.1) * 2.5)
 
     ta: Vec3 = make_vec3(0.0, 0.0, 0.0)
-    uu: Vec3
-    vv: Vec3
-    ww: Vec3
+    uu: Vec3 = make_vec3(0.0, 0.0, 0.0)
+    vv: Vec3 = make_vec3(0.0, 0.0, 0.0)
+    ww: Vec3 = make_vec3(0.0, 0.0, 0.0)
     calcLookAtMatrix(origin, ta, 0.0, uu, vv, ww)
 
-    direction: Vec3 = normalize(add(add(mul_scalar_vec3(uv.x, uu), mul_scalar_vec3(uv.y, vv)), mul_scalar_vec3(2.5, ww)))
+    uv_x: float = uv.x
+    uv_y: float = uv.y
+
+    direction: Vec3 = normalize(add(add(mul_scalar_vec3(uv_x, uu), mul_scalar_vec3(uv_y, vv)), mul_scalar_vec3(2.5, ww)))
 
     dist: float = raymarch(origin, direction)
 
-    fragPosition: Vec3
-    N: Vec3
-    ballColor: Vec4
-    ref: Vec3
+    fragPosition: Vec3 = make_vec3(0.0, 0.0, 0.0)
+    N: Vec3 = make_vec3(0.0, 0.0, 0.0)
+    ballColor: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
+    ref: Vec3 = make_vec3(0.0, 0.0, 0.0)
     P: float
     angle: float
     tmp: float
     starVal: float
     uv_length: float
     edge: float
-    starColor: Vec4
+    starColor: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
     rim: float
-    refr: Vec3
+    refr: Vec3 = make_vec3(0.0, 0.0, 0.0)
 
-    baseColor: Vec4
-    reflection: Vec4
-    rim_vec4: Vec4
+    baseColor: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
+    reflection: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
+    rim_vec4: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
 
     temp1: float
-    temp_vec: Vec4
+    temp_vec: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
 
     if dist < 0.0:
         fragColor = texture(environment, direction, width, height)
@@ -235,7 +238,7 @@ def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[flo
         ref = reflect(direction, N)
 
         P = 3.14159265359 / 5.0
-        angle = atan2_approx(uv.x, uv.y) + 3.14159265359
+        angle = atan2_approx(uv_x, uv_y) + 3.14159265359
         tmp = mod(angle, 2.0 * P)
         starVal = (1.0/P) * (P - abs_val(tmp - P))
 
@@ -264,3 +267,54 @@ def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[flo
 
         fragColor = addVec4(baseColor, addVec4(temp_vec, addVec4(starColor, addVec4(reflection, rim_vec4))))
         
+
+def loss_fn(environment: In[Array[Vec4]], width: In[int], height: In[int], target: In[Array[Vec4]]) -> float:
+    loss: float = 0.0
+    i: int = 0
+    j: int = 0
+    fragCoord: Vec3 = make_vec3(0.0, 0.0, 0.0)
+    fragColor: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
+    target_pixel: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
+    alpha: float
+    bg_color: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
+    blended: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
+
+    dx: float
+    dy: float
+    dz: float
+
+    while (i < height, max_iter := 720):
+        j = 0
+        while (j < width, max_iter := 1280):
+            fragCoord = make_vec3(int2float(j), int2float(i), 0.0)
+            mainImage(fragCoord,
+                      int2float(width),
+                      int2float(height),
+                      0.0,  # iTime
+                      environment,
+                      width,
+                      height,
+                      fragColor)
+            
+            blended = fragColor
+            # GT
+            target_pixel = target[i * width + j]
+
+            dx = blended.x - target_pixel.x
+            dy = blended.y - target_pixel.y
+            dz = blended.z - target_pixel.z
+            loss = loss + dx * dx + dy * dy + dz * dz
+
+            j = j + 1
+        i = i + 1
+
+    return loss
+
+
+rev_loss_fn = rev_diff(loss_fn)
+
+def grad_loss_fn(environment: In[Array[Vec4]], gEnvironment: Out[Array[Vec4]], width: In[int], height: In[int], target: In[Array[Vec4]], gTarget: Out[Array[Vec4]]):
+    gWidth: int = 0
+    gHeight: int = 0
+
+    rev_loss_fn(environment, gEnvironment, width, gWidth, height, gHeight, target, gTarget, 1.0)

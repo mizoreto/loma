@@ -126,6 +126,13 @@ def compile(loma_code : str,
 #include <math.h>
         \n""" + code
 
+        # 在输出文件夹中保存生成的 C 文件
+        if output_filename is not None and target == 'c':
+            c_filename = output_filename.replace(distutils.ccompiler.new_compiler().shared_lib_extension, '.c')
+            with open(c_filename, 'w') as f:
+                f.write(code)
+
+
         print('Generated C code:')
         print(code)
 
@@ -147,10 +154,15 @@ def compile(loma_code : str,
                 print(log.stderr)
             os.remove(tmp_c_filename)
         else:
-            log = run(['gcc', '-shared', '-fPIC', '-o', output_filename, '-O2', '-x', 'c', '-'],
-                input = code,
-                encoding='utf-8',
-                capture_output=True)
+            # log = run(['gcc', '-shared', '-fPIC', '-o', output_filename, '-O2', '-x', 'c', '-'],
+            #     input = code,
+            #     encoding='utf-8',
+            #     capture_output=True)
+            log = run(['gcc', '-shared', '-fPIC', '-g', '-O0', '-o', output_filename, '-x', 'c', '-'],
+                    input = code,
+                    encoding='utf-8',
+                    capture_output=True)
+
             if log.returncode != 0:
                 print(log.stderr)
     elif target == 'ispc':
