@@ -94,6 +94,13 @@ def atan2_approx(y: In[float], x: In[float]) -> float:
     
     return ret
 
+def asin_approx(x: In[float]) -> float:
+    # 通过 atan2 反推（x, sqrt(1 - x^2)）的角度
+    return atan2_approx(x, sqrt(1.0 - x * x))
+
+def acos_approx(x: In[float]) -> float:
+    return 1.57079632679 - asin_approx(x)   # pi/2 - asin(x)
+
 def max(a: In[float], b: In[float]) -> float:
     ret: float
     if a > b:
@@ -128,12 +135,22 @@ def clamp(x: In[float], a: In[float], b: In[float]) -> float:
 
     return ret
 
-def texture(environment: In[Array[Vec4]], coord: In[Vec3], width: In[int], height: In[int]) -> Vec4:
-    u: float = 0.5 * (coord.x + 1.0) * (width - 1)
-    v: float = 0.5 * (coord.y + 1.0) * (height - 1)
-    x: int = float2int(clamp(u, 0, width - 1))
-    y: int = float2int(clamp(v, 0, height - 1))
-    return environment[y * width + x]
+def texture(environment: In[Array[Vec4]], coord: In[Vec3], env_width: In[int], env_height: In[int]) -> Vec4:
+    coord_x: float = coord.x
+    coord_y: float = coord.y
+    coord_z: float = coord.z
+    phi: float = atan2_approx(coord_z, coord_x)
+    if phi < 0.0:
+        phi = phi + 2.0 * 3.14159265359
+    theta: float = acos_approx(clamp(coord_y, -1.0, 1.0))
+
+    u: float = phi / (2.0 * 3.14159265359)
+    v: float = 1.0 - theta / 3.14159265359
+
+    x: int = float2int(clamp(u * (env_width - 1), 0, env_width - 1))
+    y: int = float2int(clamp(v * (env_height - 1), 0, env_height - 1))
+    return environment[y * env_width + x]
+
 
 ##################################################
 def scene(position: In[Vec3]) -> float:
@@ -187,7 +204,7 @@ def calcLookAtMatrix(ro: In[Vec3], ta: In[Vec3], roll: In[float], uu: Out[Vec3],
     vv = vv_val
     ww = ww_val
 
-def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[float], iTime: In[float], environment: In[Array[Vec4]], width: In[int], height: In[int], fragColor: Out[Vec4]):
+def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[float], iTime: In[float], environment: In[Array[Vec4]], env_width: In[int], env_height: In[int], fragColor: Out[Vec4]):
     uv: Vec3 = make_vec3(0.0, 0.0, 0.0)
     uv.x = fragCoord.x / iResolutionY - 0.5 * iResolutionX / iResolutionY
     uv.y = fragCoord.y / iResolutionY - 0.5
@@ -230,12 +247,12 @@ def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[flo
     temp_vec: Vec4 = make_vec4(0.0, 0.0, 0.0, 0.0)
 
     if dist < 0.0:
-        fragColor = texture(environment, direction, width, height)
+        fragColor = texture(environment, direction, env_width, env_height)
     else:
         fragPosition = add(origin, mul_scalar_vec3(dist, direction))
         N = getNormal(fragPosition, 0.01)
         ballColor = make_vec4(0.75, 0.6, 0.0, 0.75)       # (1.0, 0.8, 0.0, 1.0) * 0.75
-        ref = reflect(direction, N)
+        ref = normalize(reflect(direction, N))
 
         P = 3.14159265359 / 5.0
         angle = atan2_approx(uv_x, uv_y) + 3.14159265359
@@ -253,10 +270,14 @@ def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[flo
         rim = max(0.0, (0.7 + dot(N, direction)))
         refr = refract(direction, N, 0.7)
 
-        baseColor = texture(environment, refr, width, height)
+        if length(refr) < 1e-5:
+            baseColor = make_vec4(0.0, 0.0, 0.0, 0.0)  # 或 skip
+        else:
+            baseColor = texture(environment, normalize(refr), env_width, env_height)
+
         baseColor = mul_vec4_vec4(baseColor, ballColor)
 
-        reflection = texture(environment, ref, width, height)
+        reflection = texture(environment, ref, env_width, env_height)
         reflection = mul_scalar_vec4(0.3, reflection)
 
         rim_vec4 = make_vec4(rim, rim * 0.5, 0.0, 1.0)
@@ -268,7 +289,7 @@ def mainImage(fragCoord: In[Vec3], iResolutionX: In[float], iResolutionY: In[flo
         fragColor = addVec4(baseColor, addVec4(temp_vec, addVec4(starColor, addVec4(reflection, rim_vec4))))
         
 
-def loss_fn(environment: In[Array[Vec4]], width: In[int], height: In[int], target: In[Array[Vec4]]) -> float:
+def loss_fn(environment: In[Array[Vec4]], width: In[int], height: In[int], env_width: In[int], env_height: In[int], target: In[Array[Vec4]]) -> float:
     loss: float = 0.0
     i: int = 0
     j: int = 0
@@ -292,12 +313,12 @@ def loss_fn(environment: In[Array[Vec4]], width: In[int], height: In[int], targe
                       int2float(height),
                       0.0,  # iTime
                       environment,
-                      width,
-                      height,
+                      env_width,
+                      env_height,
                       fragColor)
             
             blended = fragColor
-            # GT
+            
             target_pixel = target[i * width + j]
 
             dx = blended.x - target_pixel.x
@@ -313,8 +334,10 @@ def loss_fn(environment: In[Array[Vec4]], width: In[int], height: In[int], targe
 
 rev_loss_fn = rev_diff(loss_fn)
 
-def grad_loss_fn(environment: In[Array[Vec4]], gEnvironment: Out[Array[Vec4]], width: In[int], height: In[int], target: In[Array[Vec4]], gTarget: Out[Array[Vec4]]):
+def grad_loss_fn(environment: In[Array[Vec4]], gEnvironment: Out[Array[Vec4]], width: In[int], height: In[int], env_width: In[int], env_height: In[int], target: In[Array[Vec4]], gTarget: Out[Array[Vec4]]):
     gWidth: int = 0
     gHeight: int = 0
+    gEnv_width: int = 0
+    gEnv_height: int = 0
 
-    rev_loss_fn(environment, gEnvironment, width, gWidth, height, gHeight, target, gTarget, 1.0)
+    rev_loss_fn(environment, gEnvironment, width, gWidth, height, gHeight, env_width, gEnv_width, env_height, gEnv_height, target, gTarget, 1.0)
